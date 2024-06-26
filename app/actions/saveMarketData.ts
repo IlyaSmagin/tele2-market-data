@@ -1,3 +1,4 @@
+"use server";
 import { createClient } from "@supabase/supabase-js";
 //  <saveMarketData:
 async function saveMarketData() {

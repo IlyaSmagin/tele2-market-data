@@ -1,5 +1,5 @@
 import { inngest } from "./client";
-
+import saveMarketData from "../../actions/saveMarketData";
 export const helloRegular = inngest.createFunction(
 	{ id: "send-regular-request" },
 	{ cron: "TZ=Europe/Paris */5 * * * *" }, // every 5 minutes
@@ -30,6 +30,7 @@ export const helloWorld = inngest.createFunction(
 	{ event: "test/hello.world" },
 	async ({ event, step }) => {
 		await step.sleep("wait-a-moment", "1s");
-		return { event, body: "Hello, World!" };
+		saveMarketData();
+		return { event, body: "Saved world to db!" };
 	}
 );
