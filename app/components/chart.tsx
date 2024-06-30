@@ -15,6 +15,7 @@ const LineChart = ({ data }: ChartProps) => {
 	const maxY = Math.max(...data.map((item) => item.numberOfLots));
 	const guides = Array.from({ length: 16 }, (_, index) => index);
 
+	//TODO normalize height (Y)
 	const properties = data.map((property, index) => {
 		const { numberOfLots, date } = property;
 		const x =
