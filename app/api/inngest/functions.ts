@@ -4,10 +4,14 @@ export const saveCurrentDataMarket = inngest.createFunction(
 	{ id: "send-regular-request" },
 	{ cron: "TZ=Europe/Paris */5 * * * *" }, // every 5 minutes
 	async () => {
-		saveMarketData();
+		// async ({ event, step }) => {
+		// const uploadedData = await step.run("copy-images-to-s3", async () => {
+		// 	return saveMarketData();
+		// });
+		// saveMarketData()
 		// Load all the users from your database:
 		// query and save market data
-		return { body: "Hello, Time!" };
+		return saveMarketData();
 	}
 );
 

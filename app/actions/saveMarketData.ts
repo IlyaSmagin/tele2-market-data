@@ -11,16 +11,15 @@ async function saveMarketData() {
 	);
 	const parsedDataPointAPI = await dataPointAPI.json();
 	const { meta, data } = await parsedDataPointAPI;
+	const dbObject = {
+		status: meta.status,
+		message: meta.message,
+		data: data,
+	};
 	try {
 		const { error: dbError } = await supabase
 			.from("MarketData")
-			.insert([
-				{
-					status: meta.status,
-					message: meta.message,
-					data: data,
-				},
-			])
+			.insert([dbObject])
 			.select();
 		if (dbError) {
 			throw dbError;
@@ -29,6 +28,7 @@ async function saveMarketData() {
 		console.log(dbError);
 	} finally {
 		console.log("Server action: saveMarketData, status: OK");
+		return dbObject;
 	}
 }
 export default saveMarketData;
