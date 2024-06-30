@@ -1,9 +1,9 @@
 import { serve } from "inngest/next";
 import { inngest } from "./client";
-import { helloWorld, helloTime, helloRegular } from "./functions";
+import { helloWorld, helloTime, saveCurrentDataMarket } from "./functions";
 
 // Create an API that serves zero functions
 export const { GET, POST, PUT } = serve({
 	client: inngest,
-	functions: [helloWorld, helloTime, helloRegular],
+	functions: [helloWorld, helloTime, saveCurrentDataMarket],
 });

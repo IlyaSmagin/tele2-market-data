@@ -1,9 +1,10 @@
 import { inngest } from "./client";
 import saveMarketData from "../../actions/saveMarketData";
-export const helloRegular = inngest.createFunction(
+export const saveCurrentDataMarket = inngest.createFunction(
 	{ id: "send-regular-request" },
 	{ cron: "TZ=Europe/Paris */5 * * * *" }, // every 5 minutes
 	async () => {
+		saveMarketData();
 		// Load all the users from your database:
 		// query and save market data
 		return { body: "Hello, Time!" };
