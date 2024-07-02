@@ -13,21 +13,24 @@ const LineChart = ({ data }: ChartProps) => {
 	const paddingX = 50;
 	const paddingY = 90;
 	const maxY = Math.max(...data.map((item) => item.numberOfLots));
+	const minY = Math.min(...data.map((item) => item.numberOfLots));
 	const guides = Array.from({ length: 16 }, (_, index) => index);
 
-	//TODO normalize height (Y)
+	//TODO extract logical computation into separate variables
 	const properties = data.map((property, index) => {
 		const { numberOfLots, date } = property;
+		const newLotsCount = numberOfLots - minY;
 		const x =
 			(index / data.length) * (chartWidth - paddingX) + paddingX / 2;
 		const y =
 			chartHeight -
 			offsetY -
-			(numberOfLots / maxY) * (chartHeight - (paddingY + offsetY)) -
+			(newLotsCount / (maxY - minY)) *
+				(chartHeight - (paddingY + offsetY)) -
 			paddingY +
 			offsetY;
 		return {
-			total: numberOfLots,
+			total: newLotsCount,
 			date: date,
 			x: x,
 			y: y,
