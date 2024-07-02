@@ -12,25 +12,25 @@ const LineChart = ({ data }: ChartProps) => {
 	const offsetY = 40;
 	const paddingX = 50;
 	const paddingY = 90;
+	//TODO remove destructing array twice
 	const maxY = Math.max(...data.map((item) => item.numberOfLots));
 	const minY = Math.min(...data.map((item) => item.numberOfLots));
+	//TODO easier guides array creation
 	const guides = Array.from({ length: 16 }, (_, index) => index);
 
-	//TODO extract logical computation into separate variables
 	const properties = data.map((property, index) => {
 		const { numberOfLots, date } = property;
-		const newLotsCount = numberOfLots - minY;
+		const relativeLotsCount = numberOfLots - minY;
 		const x =
 			(index / data.length) * (chartWidth - paddingX) + paddingX / 2;
+		//TODO extract logical computation into separate variables
 		const y =
 			chartHeight -
-			offsetY -
-			(newLotsCount / (maxY - minY)) *
+			(relativeLotsCount / (maxY - minY)) *
 				(chartHeight - (paddingY + offsetY)) -
-			paddingY +
-			offsetY;
+			paddingY;
 		return {
-			total: newLotsCount,
+			total: numberOfLots,
 			date: date,
 			x: x,
 			y: y,
@@ -47,7 +47,7 @@ const LineChart = ({ data }: ChartProps) => {
 	return (
 		<svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="presentation">
 			{guides.map((_, index) => {
-				const ratio = index / guides.length;
+				const ratio = index / (guides.length - 1);
 				const y = chartHeight - paddingY - chartHeight * ratio;
 
 				return (
@@ -74,12 +74,12 @@ const LineChart = ({ data }: ChartProps) => {
 				const { total, date, x, y } = property;
 
 				return (
-					<g key={index}>
+					<g key={index} className="opacity-0 hover:opacity-100">
 						<circle
 							className="stroke-zinc-500 fill-black"
 							cx={x}
 							cy={y}
-							r={12}
+							r={20}
 							strokeWidth={2}
 						/>
 						<text
@@ -102,12 +102,11 @@ const LineChart = ({ data }: ChartProps) => {
 								textAnchor="start"
 								// transformOrigin="50% 50%"
 								fontSize={10}
-								className="fill-zinc-100 select-none"
+								className="fill-black-100 select-none"
 							>
-								{new Date(date).toLocaleDateString(undefined, {
-									year: "2-digit",
-									month: "numeric",
-									day: "numeric",
+								{new Date(date).toLocaleTimeString([], {
+									hour: "2-digit",
+									minute: "2-digit",
 								})}
 							</text>
 						</g>
