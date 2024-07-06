@@ -9,26 +9,26 @@ async function getData(data_length: number) {
 
 	const { data, error } = await supabase
 		.from("MarketData")
-		.select("created_at,data")
-		.range(0, data_length);
+		.select("created_at, data")
+		.order("created_at", { ascending: false })
+		.limit(data_length);
 	if (error) {
 		console.log(error);
 	}
+	//TODO write dedicated type
 	const newData =
 		(data as {
 			created_at: string;
 			data: { volume: number; count: number }[];
 		}[]) || {};
-	const graphData = newData.map((dataPoint) => {
-		return {
-			date: dataPoint.created_at,
-			numberOfLots: dataPoint.data[0].count,
-		};
-	});
-	// (data as {
-	// 	created_at: string;
-	// 	data: { volume: number; count: number }[];
-	// }[]) || {}
+	const graphData = newData
+		.map((dataPoint) => {
+			return {
+				date: dataPoint.created_at,
+				numberOfLots: dataPoint.data[0].count,
+			};
+		})
+		.reverse();
 	return graphData;
 }
 export default getData;
