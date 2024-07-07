@@ -11,7 +11,7 @@ async function getData(data_length: number) {
 		.from("MarketData")
 		.select("created_at, data")
 		.order("created_at", { ascending: false })
-		.limit(data_length);
+		.limit(data_length);//supabase has internal nimit of 1000 TODO set it to week range (2014)
 	if (error) {
 		console.log(error);
 	}
