@@ -15,6 +15,7 @@ async function saveMarketData() {
 		status: meta.status,
 		message: meta.message,
 		data: data,
+		"1Gb": data[0].count
 	};
 	try {
 		const { error: dbError } = await supabase
