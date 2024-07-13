@@ -10,8 +10,8 @@ async function getData(data_length: number) {
 	const { data, error } = await supabase
 		.from("MarketData")
 		.select("created_at, 1Gb")
-		.order("created_at", { ascending: false })
-		.limit(data_length);//supabase has internal nimit of 1000 TODO set it to week range (2014)
+		.order("id", { ascending: false })
+		.limit(data_length);//limit is set to 2016 rows TODO: check db to only keep data from every 5 minutes
 	if (error) {
 		console.log(error);
 	}
@@ -27,8 +27,7 @@ async function getData(data_length: number) {
 				date: dataPoint.created_at,
 				numberOfLots: dataPoint["1Gb"],
 			};
-		})
-		.reverse();
+		}).reverse();// TODO: REWRITE!
 	return graphData;
 }
 export default getData;
