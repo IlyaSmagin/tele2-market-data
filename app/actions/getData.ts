@@ -1,6 +1,7 @@
 // import { Data } from "@/types";
 import { createClient } from "@supabase/supabase-js";
 //  <song:Promise<Podcast[]>>
+
 async function getData(data_length: number) {
 	const supabase = createClient(
 		process.env.NEXT_PUBLIC_SUPABASE_URL!,
