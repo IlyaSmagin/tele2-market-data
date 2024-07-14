@@ -4,11 +4,7 @@ import LineChart from "./components/chart";
 
 export const revalidate = 300; // revalidate at most every 5 minutes
 
-export default async function Home({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default async function Home() {
 	const dataPoints = await getData(288);//288 day, 2016 week
 	return (
 		<>
