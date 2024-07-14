@@ -66,7 +66,7 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 				);
 			})}
 
-			//Main line
+			{/*Main line*/}
 			<polyline
 				fill="none"
 				className="stroke-zinc-500"
@@ -74,7 +74,7 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 				points={points}
 			/>
 
-			//Labels
+			{/*Labels*/}
 			{properties.map((property, index) => {
 				const { total, date, x, y } = property;
 
@@ -102,10 +102,10 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 								chartHeight - (paddingY - offsetY)
 							})`}
 						>
+							{/* transformOrigin="50% 50%"*/}
 							<text
 								transform="rotate(45)"
 								textAnchor="start"
-								// transformOrigin="50% 50%"
 								fontSize={10}
 								className="fill-black-100 select-none"
 							>
