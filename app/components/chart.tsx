@@ -1,12 +1,13 @@
 import React from "react";
 type ChartProps = {
+	numberOfLayers?: number;
 	data: {
 		date: string;
 		numberOfLots: number;
 	}[];
 };
 
-const LineChart = ({ data }: ChartProps) => {
+const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 	const chartWidth = 1200;
 	const chartHeight = 600;
 	const offsetY = 40;
@@ -22,7 +23,7 @@ const LineChart = ({ data }: ChartProps) => {
 		const { numberOfLots, date } = property;
 		const relativeLotsCount = numberOfLots - minY;
 		const x =
-			(index / data.length) * (chartWidth - paddingX) + paddingX / 2;
+			(index%(data.length/numberOfLayers) / data.length/numberOfLayers) * (chartWidth - paddingX) + paddingX / 2;
 		//TODO extract logical computation into separate variables
 		const y =
 			chartHeight -
@@ -46,6 +47,8 @@ const LineChart = ({ data }: ChartProps) => {
 
 	return (
 		<svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="presentation">
+
+			//Guides TODO: move .map out of return, then extract to separate component
 			{guides.map((_, index) => {
 				const ratio = index / (guides.length - 1);
 				const y = chartHeight - paddingY - chartHeight * ratio;
@@ -63,6 +66,7 @@ const LineChart = ({ data }: ChartProps) => {
 				);
 			})}
 
+			//Main line
 			<polyline
 				fill="none"
 				className="stroke-zinc-500"
@@ -70,6 +74,7 @@ const LineChart = ({ data }: ChartProps) => {
 				points={points}
 			/>
 
+			//Labels
 			{properties.map((property, index) => {
 				const { total, date, x, y } = property;
 
