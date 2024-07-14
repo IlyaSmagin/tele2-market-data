@@ -48,7 +48,7 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 	return (
 		<svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="presentation">
 
-			//Guides TODO: move .map out of return, then extract to separate component
+			{/*Guides TODO: move .map out of return, then extract to separate component*/}
 			{guides.map((_, index) => {
 				const ratio = index / (guides.length - 1);
 				const y = chartHeight - paddingY - chartHeight * ratio;
