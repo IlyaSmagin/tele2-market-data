@@ -23,7 +23,7 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 		const { numberOfLots, date } = property;
 		const relativeLotsCount = numberOfLots - minY;
 		const x =
-			(index%(data.length/numberOfLayers)) * (chartWidth - paddingX) + paddingX / 2;
+		(index%(data.length/numberOfLayers) / (data.length/numberOfLayers)) * (chartWidth - paddingX) + paddingX / 2;
 		//TODO extract logical computation into separate variables
 		const y =
 			chartHeight -
