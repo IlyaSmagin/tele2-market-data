@@ -23,7 +23,7 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 		const { numberOfLots, date } = property;
 		const relativeLotsCount = numberOfLots - minY;
 		const x =
-			(index%(data.length/numberOfLayers) / data.length/numberOfLayers) * (chartWidth - paddingX) + paddingX / 2;
+			(index%(data.length/numberOfLayers)) * (chartWidth - paddingX) + paddingX / 2;
 		//TODO extract logical computation into separate variables
 		const y =
 			chartHeight -
@@ -66,7 +66,7 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 				);
 			})}
 
-			{/*Main line*/}
+			{/*Main line TODO: split into numberOfLayers lines with different colors*/}
 			<polyline
 				fill="none"
 				className="stroke-zinc-500"
@@ -107,7 +107,7 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 								transform="rotate(45)"
 								textAnchor="start"
 								fontSize={10}
-								className="fill-black-100 select-none"
+								className="fill-zinc-600 select-none"
 							>
 								{new Date(date).toLocaleTimeString([], {
 									hour: "2-digit",

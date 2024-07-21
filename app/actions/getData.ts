@@ -11,6 +11,7 @@ async function getData(data_length: number) {
 	const { data, error } = await supabase
 		.from("MarketData")
 		.select("created_at, 1Gb")
+		.gt('1Gb', '100000')//filter falsy datapoints TODO: change outliers to last correct value or query API again
 		.order("id", { ascending: false })
 		.limit(data_length);//limit is set to 2016 rows TODO: check db to only keep data from every 5 minutes
 	if (error) {

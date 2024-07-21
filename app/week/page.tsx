@@ -9,6 +9,7 @@ export default async function Week() {
     <>
 			<div className="text-2xl">Weekly graph (messy)</div>
 			<LineChart data={dataPoints} />
+			<LineChart data={dataPoints} numberOfLayers={7} />
     </>
 	);
 }
