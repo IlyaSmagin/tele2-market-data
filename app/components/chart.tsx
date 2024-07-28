@@ -68,12 +68,13 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 
 			{/*Main line TODO: move into different component*/}
 			{layers.map(layer => {
-				console.log(`0.${100-(layers.length+layer)*5}`)
+				//only up to 9 layers for now
+				// console.log(`0.${100-(layers.length-layer)*10+9}`)
 				return (
 					<polyline
 						fill="none"
 						className={`stroke-zinc-600`}
-						style={{opacity:`0.${9-layers.length+layer}`}}
+						style={{opacity:`0.${100-(layers.length-layer)*10 + 9}`}}
 						strokeWidth={2}
 						key={`layer-${layer}`}
 						points={points.slice(layer*points.length/numberOfLayers, (layer+1)*points.length/numberOfLayers).join(" ")}
