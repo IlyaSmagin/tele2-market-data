@@ -17,7 +17,8 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 	const maxY = Math.max(...data.map((item) => item.numberOfLots));
 	const minY = Math.min(...data.map((item) => item.numberOfLots));
 	//TODO easier guides array creation
-	const guides = Array.from({ length: 16 }, (_, index) => index);
+	const guides = Array.from({length: 16}, (_, i) => i++);
+	const layers = Array.from({length: numberOfLayers}, (_, i) => i++);
 
 	const properties = data.map((property, index) => {
 		const { numberOfLots, date } = property;
@@ -42,14 +43,13 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 		.map((point) => {
 			const { x, y } = point;
 			return `${x},${y}`;
-		})
-		.join(" ");
+		});
 
 	return (
 		<svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="presentation">
 
 			{/*Guides TODO: move .map out of return, then extract to separate component*/}
-			{guides.map((_, index) => {
+			{guides.map((index) => {
 				const ratio = index / (guides.length - 1);
 				const y = chartHeight - paddingY - chartHeight * ratio;
 
@@ -66,13 +66,20 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 				);
 			})}
 
-			{/*Main line TODO: split into numberOfLayers lines with different colors*/}
-			<polyline
-				fill="none"
-				className="stroke-zinc-500"
-				strokeWidth={2}
-				points={points}
-			/>
+			{/*Main line TODO: move into different component*/}
+			{layers.map(layer => {
+				console.log(`0.${100-(layers.length+layer)*5}`)
+				return (
+					<polyline
+						fill="none"
+						className={`stroke-zinc-600`}
+						style={{opacity:`0.${9-layers.length+layer}`}}
+						strokeWidth={2}
+						key={`layer-${layer}`}
+						points={points.slice(layer*points.length/numberOfLayers, (layer+1)*points.length/numberOfLayers).join(" ")}
+					/>
+				)
+			})}
 
 			{/*Labels*/}
 			{properties.map((property, index) => {
