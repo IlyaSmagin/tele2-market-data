@@ -11,7 +11,7 @@ export default async function Home() {
 			<div className="text-4xl">Tele2 market graph</div>
 			<LineChart data={dataPoints} />
 			<form action={saveMarketData}>
-				<button type="submit">Save data to db</button>
+				<button disabled type="submit">Save data to db</button>
 			</form>
 		</>
 	);
