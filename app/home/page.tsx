@@ -1,6 +1,6 @@
-import getData from "./actions/getData";
-import saveMarketData from "./actions/saveMarketData";
-import LineChart from "./components/chart";
+import getData from "../actions/getData";
+import saveMarketData from "../actions/saveMarketData";
+import LineChart from "../components/chart";
 
 export const revalidate = 300; // revalidate at most every 5 minutes
 

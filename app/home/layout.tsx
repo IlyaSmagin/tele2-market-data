@@ -3,7 +3,7 @@ export default function Home({ children }: {
 }) {
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b bg-slate-50 px-6">
+      <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b  px-6">
         <h1 className="text-lg font-semibold">Home</h1>
         <div className="ml-auto flex items-center gap-4">
         </div>

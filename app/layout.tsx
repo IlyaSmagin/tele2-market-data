@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils"
 import Link from "next/link";
+import ThemeToggle from "./components/themeToggle";
+import Button from "./components/button";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={cn("grid min-h-screen w-full grid-cols-[280px_1fr] ", inter.className)}>
+      <body className={cn("grid min-h-screen w-full grid-cols-[280px_1fr] dark:bg-black dark:text-gray-100", inter.className)}>
         <aside className="flex flex-col border-r bg-background">
           <div className="flex h-16 items-center justify-center border-b">
             <Link href="#" className="flex items-center gap-2 font-semibold" prefetch={false}>
@@ -28,24 +30,31 @@ export default function RootLayout({
           </div>
           <div className="flex-1 overflow-auto py-4">
             <nav className="grid gap-2 px-4">
-              <Link href="/home" className="inline-flex items-center justify-start whitespace-nowrap rounded-md text-sm font-medium text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-gray-100 h-9 px-3 py-2">
-                Home
+              <Link href="/home" >
+                <Button>
+                  Home
+                </Button>
               </Link>
-              <Link href="/dashboard" className="inline-flex items-center justify-start whitespace-nowrap rounded-md text-sm font-medium text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-gray-100 h-9 px-3 py-2">
-                Dashboard
+              <Link href="/dashboard">
+                <Button>
+                  Dashboard
+                </Button>
               </Link>
-              <Link href="internet" className="inline-flex items-center justify-start whitespace-nowrap rounded-md text-sm font-medium text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-gray-100 h-9 px-3 py-2">
-                Internet
+              <Link href="internet">
+                <Button>
+                  Internet
+                </Button>
               </Link>
-              <button disabled className="inline-flex items-center justify-start whitespace-nowrap rounded-md text-sm font-medium text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-gray-100 h-9 px-3 py-2">
+              <Button disabled >
                 Calls
-              </button>
-              <button disabled className="inline-flex items-center justify-start whitespace-nowrap rounded-md text-sm font-medium text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-gray-100 h-9 px-3 py-2">
+              </Button>
+              <Button disabled >
                 Messages
-              </button>
-              <button disabled className="inline-flex items-center justify-start whitespace-nowrap rounded-md text-sm font-medium text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-gray-100 h-9 px-3 py-2">
+              </Button>
+              <Button disabled >
                 Settings
-              </button>
+              </Button>
+              <ThemeToggle />
             </nav>
           </div>
         </aside>
