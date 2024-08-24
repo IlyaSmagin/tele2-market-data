@@ -3,8 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils"
 import Link from "next/link";
-import ThemeToggle from "./components/themeToggle";
-import Button from "./components/button";
+import Script from "next/script";
+import { NavLinks } from "./components/SidebarNavLinks";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,38 +29,11 @@ export default function RootLayout({
             </Link>
           </div>
           <div className="flex-1 overflow-auto py-4">
-            <nav className="grid gap-2 px-4">
-              <Link href="/home" >
-                <Button>
-                  Home
-                </Button>
-              </Link>
-              <Link href="/dashboard">
-                <Button>
-                  Dashboard
-                </Button>
-              </Link>
-              <Link href="internet">
-                <Button>
-                  Internet
-                </Button>
-              </Link>
-              <Button disabled >
-                Calls
-              </Button>
-              <Button disabled >
-                Messages
-              </Button>
-              <Button disabled >
-                Settings
-              </Button>
-              <ThemeToggle />
-            </nav>
+            <NavLinks />
           </div>
         </aside>
         <main className="flex min-h-screen w-full flex-col">
           {children}
-
         </main>
       </body>
     </html>
