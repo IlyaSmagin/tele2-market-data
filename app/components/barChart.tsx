@@ -1,3 +1,5 @@
+"use server";
+
 import React from "react";
 
 type BarChartProps = {
@@ -12,11 +14,12 @@ const BarChart = ({ data }: BarChartProps) => {
 	const paddingY = 90;
 
 	const maxY = Math.max(...data);
-	// Log scale: use 1 as minimum so log(0) is avoided
+
+	// Log scale — floor at 1 so log10(0) is avoided
 	const logMin = 0;
 	const logMax = Math.log10(maxY);
 
-	// Build guide lines at each power of 10 that falls within range
+	// One guide line per power of 10 within range
 	const powers: number[] = [];
 	for (let p = 0; p <= Math.ceil(logMax); p++) {
 		powers.push(p);
@@ -32,7 +35,6 @@ const BarChart = ({ data }: BarChartProps) => {
 	const toX = (index: number) =>
 		(index / barCount) * availableWidth + paddingX / 2 + barWidth / 2;
 
-	// Map a value onto the SVG Y axis using log10 scale; values < 1 are clamped to baseline
 	const toY = (value: number) => {
 		if (value <= 1) return chartHeight - paddingY;
 		const ratio = (Math.log10(value) - logMin) / (logMax - logMin);
@@ -43,10 +45,16 @@ const BarChart = ({ data }: BarChartProps) => {
 
 	return (
 		<svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="presentation">
-			{/* Guides at each power of 10 */}
+			{/* Guide lines at each power of 10 */}
 			{powers.map((p) => {
-				const value = Math.pow(10, p);
-				const y = toY(value);
+				const tickValue = Math.pow(10, p);
+				const y = toY(tickValue);
+				const label =
+					tickValue >= 1_000_000
+						? `${tickValue / 1_000_000}M`
+						: tickValue >= 1_000
+						? `${tickValue / 1_000}K`
+						: String(tickValue);
 				return (
 					<g key={p}>
 						<polyline
@@ -62,11 +70,7 @@ const BarChart = ({ data }: BarChartProps) => {
 							fontSize={9}
 							className="fill-zinc-500 select-none"
 						>
-							{value >= 1000000
-								? `${value / 1000000}M`
-								: value >= 1000
-								? `${value / 1000}K`
-								: value}
+							{label}
 						</text>
 					</g>
 				);
@@ -77,13 +81,10 @@ const BarChart = ({ data }: BarChartProps) => {
 				const cx = toX(index);
 				const barTop = toY(value);
 				const barHeight = Math.max(1, baselineY - barTop);
-
-				// X-axis label: every 10th bar
 				const showLabel = index % 10 === 0;
 
 				return (
 					<g key={index} className="group">
-						{/* Default bar */}
 						<rect
 							x={cx - barBodyWidth / 2}
 							y={barTop}
@@ -93,7 +94,7 @@ const BarChart = ({ data }: BarChartProps) => {
 							strokeWidth={1}
 						/>
 
-						{/* Hover label */}
+						{/* Hover value label */}
 						<g className="opacity-0 group-hover:opacity-100">
 							<circle
 								className="stroke-zinc-500 fill-black"
