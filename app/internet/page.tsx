@@ -8,7 +8,7 @@ export const revalidate = 300; // revalidate at most every 5 minutes
 // Dummy data: quantity of lots available for each GB volume tier (index 0 = 1 GB, index 119 = 120 GB)
 const volumeDistributionData: number[] = [
 	238030, 105132, 91014, 38010, 80560, 28891, 23113, 9962, 7411, 77121,
-	4234, 42343347, 3347, 14317, 22406,
+	4234, 4234,3347, 3347, 14317, 22406,
 	// remaining 105 values from 0 to 1000
 	841, 512, 993, 77, 430, 265, 188, 600, 50, 912,
 	344, 721, 88, 477, 130, 855, 23, 667, 390, 145,
