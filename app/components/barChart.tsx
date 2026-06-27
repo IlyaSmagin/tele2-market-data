@@ -11,10 +11,18 @@ const BarChart = ({ data }: BarChartProps) => {
 	const paddingX = 50;
 	const paddingY = 90;
 
-	const guides = Array.from({ length: 16 }, (_, i) => i);
-
 	const maxY = Math.max(...data);
-	const minY = 0;
+	// Log scale: use 1 as minimum so log(0) is avoided
+	const logMin = 0;
+	const logMax = Math.log10(maxY);
+
+	// Build guide lines at each power of 10 that falls within range
+	const powers: number[] = [];
+	for (let p = 0; p <= Math.ceil(logMax); p++) {
+		powers.push(p);
+	}
+
+	const drawHeight = chartHeight - paddingY - offsetY;
 
 	const barCount = data.length;
 	const availableWidth = chartWidth - paddingX;
@@ -24,30 +32,43 @@ const BarChart = ({ data }: BarChartProps) => {
 	const toX = (index: number) =>
 		(index / barCount) * availableWidth + paddingX / 2 + barWidth / 2;
 
-	const toY = (value: number) =>
-		chartHeight -
-		paddingY -
-		((value - minY) / (maxY - minY)) * (chartHeight - paddingY - offsetY);
+	// Map a value onto the SVG Y axis using log10 scale; values < 1 are clamped to baseline
+	const toY = (value: number) => {
+		if (value <= 1) return chartHeight - paddingY;
+		const ratio = (Math.log10(value) - logMin) / (logMax - logMin);
+		return chartHeight - paddingY - ratio * drawHeight;
+	};
 
-	const baselineY = toY(minY);
+	const baselineY = chartHeight - paddingY;
 
 	return (
 		<svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="presentation">
-			{/* Guides */}
-			{guides.map((index) => {
-				const ratio = index / (guides.length - 1);
-				const y =
-					chartHeight -
-					paddingY -
-					(chartHeight - paddingY - offsetY) * ratio;
+			{/* Guides at each power of 10 */}
+			{powers.map((p) => {
+				const value = Math.pow(10, p);
+				const y = toY(value);
 				return (
-					<polyline
-						key={index}
-						className="stroke-zinc-800"
-						fill="none"
-						strokeWidth={1}
-						points={`${paddingX / 2},${y} ${chartWidth - paddingX / 2},${y}`}
-					/>
+					<g key={p}>
+						<polyline
+							className="stroke-zinc-800"
+							fill="none"
+							strokeWidth={1}
+							points={`${paddingX / 2},${y} ${chartWidth - paddingX / 2},${y}`}
+						/>
+						<text
+							x={paddingX / 2 - 4}
+							y={y + 4}
+							textAnchor="end"
+							fontSize={9}
+							className="fill-zinc-500 select-none"
+						>
+							{value >= 1000000
+								? `${value / 1000000}M`
+								: value >= 1000
+								? `${value / 1000}K`
+								: value}
+						</text>
+					</g>
 				);
 			})}
 
