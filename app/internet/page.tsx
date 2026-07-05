@@ -2,6 +2,7 @@ import getData from "../actions/getData";
 import LineChart from "../components/chart";
 import CandlestickChart from "../components/candlestickChart";
 import BarChart from "../components/barChart";
+import DerivativeChart from "../components/derivativeChart";
 
 export const revalidate = 300; // revalidate at most every 5 minutes
 
@@ -38,6 +39,8 @@ export default async function Week() {
 			<LineChart data={filteredDataPoints} />
 			<h1 className="text-2xl">Weekly graph (folded)</h1>
 			<LineChart data={filteredDataPoints} numberOfLayers={7} />
+			<h1 className="text-2xl">Rate of change of 1 GB lots (24h)</h1>
+			<DerivativeChart data={dataPoints} />
     </>
 	);
 }

@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import getData from "../actions/getData";
 import LineChart from "../components/chart";
+import DerivativeChart from "../components/derivativeChart";
 
 export const revalidate = 300; // revalidate at most every 5 minutes
 
@@ -37,14 +38,29 @@ const GRAPH_REGISTRY: Record<string, GraphDefinition> = {
 		title: "1 GB lots over the month (folded by day)",
 		render: (data) => <LineChart data={data.month} numberOfLayers={30} />,
 	},
+	"1gb-derivative-24h": {
+		id: "1gb-derivative-24h",
+		title: "Rate of change of 1 GB lots (last 24 hours)",
+		render: (data) => <DerivativeChart data={data.day} />,
+	},
+	"1gb-derivative-week-folded": {
+		id: "1gb-derivative-week-folded",
+		title: "Rate of change of 1 GB lots over the week (folded by day)",
+		render: (data) => <DerivativeChart data={data.week} numberOfLayers={7} />,
+	},
+	"1gb-derivative-month-folded": {
+		id: "1gb-derivative-month-folded",
+		title: "Rate of change of 1 GB lots over the month (folded by day)",
+		render: (data) => <DerivativeChart data={data.month} numberOfLayers={30} />,
+	},
 };
 
 // Tab configuration. Each tab lists graph ids in display order — reorder the
 // array to rearrange graphs, or add ids from the registry to include more.
 const TABS: { value: string; label: string; graphs: string[] }[] = [
-	{ value: "24h", label: "24h", graphs: ["1gb-24h"] },
-	{ value: "week", label: "Week", graphs: ["1gb-week-folded"] },
-	{ value: "month", label: "Month", graphs: ["1gb-month-folded"] },
+	{ value: "24h", label: "24h", graphs: ["1gb-24h", "1gb-derivative-24h"] },
+	{ value: "week", label: "Week", graphs: ["1gb-week-folded", "1gb-derivative-week-folded"] },
+	{ value: "month", label: "Month", graphs: ["1gb-month-folded", "1gb-derivative-month-folded"] },
 ];
 
 export default async function Dashboard() {
