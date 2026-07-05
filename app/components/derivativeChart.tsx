@@ -8,9 +8,25 @@ type DerivativeChartProps = {
 	}[];
 };
 
+// Returns the value at the given percentile (0-1) of a numeric array.
+const percentile = (sorted: number[], p: number) => {
+	if (sorted.length === 0) return 0;
+	const index = (sorted.length - 1) * p;
+	const lower = Math.floor(index);
+	const upper = Math.ceil(index);
+	if (lower === upper) return sorted[lower];
+	return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower);
+};
+
 // Shows the rate of change (derivative) of the number of 1 GB lots between
 // consecutive data points. Positive values mean lots are being added to the
 // market, negative values mean they are being sold/removed.
+//
+// Anomalies such as end-of-day bulk deletions produce huge one-off spikes that
+// dominate the vertical scale and drown out the meaningful day-to-day flow. To
+// keep the derivative smooth we winsorize the deltas: values outside the
+// interquartile whiskers (Tukey's 1.5*IQR fences) are clamped to those bounds
+// so a single anomaly no longer squashes the rest of the chart.
 const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => {
 	const chartWidth = 1200;
 	const chartHeight = 600;
@@ -18,19 +34,42 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 	const paddingX = 50;
 	const paddingY = 90;
 
-	// Compute the derivative: difference between each point and the previous one.
+	// Raw derivative: difference between each point and the previous one.
 	// First point has no predecessor, so its rate of change is 0.
+	const rawDeltas = data.map((point, index) =>
+		index === 0 ? 0 : point.numberOfLots - data[index - 1].numberOfLots
+	);
+
+	// Robust bounds via the interquartile range (ignores the first zero-pad point).
+	const sorted = [...rawDeltas.slice(1)].sort((a, b) => a - b);
+	const q1 = percentile(sorted, 0.25);
+	const q3 = percentile(sorted, 0.75);
+	const median = percentile(sorted, 0.5);
+	const iqr = q3 - q1;
+	const lowerFence = q1 - 1.5 * iqr;
+	const upperFence = q3 + 1.5 * iqr;
+
+	// A delta is an anomaly if it falls outside Tukey's fences (e.g. an
+	// end-of-day bulk deletion). Anomalies are replaced with the median delta so
+	// the line flows smoothly instead of spiking; the raw value is kept for the
+	// hover label so the anomaly is still discoverable.
+	const isOutlier = (value: number) =>
+		value < lowerFence || value > upperFence;
+
 	const derivative = data.map((point, index) => {
-		const previous = index === 0 ? point.numberOfLots : data[index - 1].numberOfLots;
+		const raw = rawDeltas[index];
+		const smoothed = isOutlier(raw);
 		return {
 			date: point.date,
-			delta: point.numberOfLots - previous,
+			delta: smoothed ? median : raw,
+			rawDelta: raw,
+			clamped: smoothed,
 		};
 	});
 
 	const maxY = Math.max(...derivative.map((item) => item.delta));
 	const minY = Math.min(...derivative.map((item) => item.delta));
-	// Symmetric range around zero so the zero line sits sensibly in the chart.
+	// Non-zero range so the zero line sits sensibly in the chart.
 	const range = maxY - minY || 1;
 
 	const guides = Array.from({ length: 16 }, (_, i) => i);
@@ -42,7 +81,7 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 		paddingY;
 
 	const properties = derivative.map((property, index) => {
-		const { delta, date } = property;
+		const { delta, date, rawDelta, clamped } = property;
 		const x =
 			((index % (derivative.length / numberOfLayers)) /
 				(derivative.length / numberOfLayers)) *
@@ -50,6 +89,8 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 			paddingX / 2;
 		return {
 			delta,
+			rawDelta,
+			clamped,
 			date,
 			x,
 			y: toY(delta),
@@ -105,15 +146,20 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 
 			{/* Labels */}
 			{properties.map((property, index) => {
-				const { delta, date, x, y } = property;
+				const { delta, rawDelta, clamped, date, x, y } = property;
 				return (
 					<g key={index} className="opacity-0 hover:opacity-100">
 						<circle
-							className="stroke-zinc-500 fill-black"
+							className={
+								clamped
+									? "stroke-zinc-400 fill-black"
+									: "stroke-zinc-500 fill-black"
+							}
 							cx={x}
 							cy={y}
 							r={20}
 							strokeWidth={2}
+							strokeDasharray={clamped ? "3 3" : undefined}
 						/>
 						<text
 							x={x}
@@ -122,7 +168,11 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 							fontSize={8}
 							className="font-bold fill-zinc-100 select-none"
 						>
-							{delta > 0 ? `+${delta}` : delta}
+							{clamped
+								? `${rawDelta > 0 ? "+" : ""}${rawDelta} (smoothed)`
+								: delta > 0
+								? `+${delta}`
+								: delta}
 						</text>
 
 						<g transform={`translate(${x} ${chartHeight - (paddingY - offsetY)})`}>
