@@ -1,4 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-  
+
+
+@media (max-width: 768px) {
+    main {
+        padding-bottom: 80px;
+    }
+}

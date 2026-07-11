@@ -33,7 +33,7 @@ export function NavLinks({ variant = 'sidebar' }: NavLinksProps) {
     return (
       <div className="flex items-center justify-around h-20 px-2">
         {navLinks.map((link) => (
-          <Link key={link.href} href={link.href} className="flex-1">
+          <Link key={link.label} href={link.href} className="flex-1">
             <Button 
               disabled={link.disabled}
               className={cn(
@@ -54,7 +54,7 @@ export function NavLinks({ variant = 'sidebar' }: NavLinksProps) {
   return (
     <nav className="grid gap-2 px-4">
       {navLinks.map((link) => (
-        <Link key={link.href} href={link.href}>
+        <Link key={link.label} href={link.href}>
           <Button 
             disabled={link.disabled}
             className={cn(

@@ -22,8 +22,11 @@
 		"tailwind-merge": "^2.4.0",
 		"tailwindcss-animate": "^1.0.7"
 	},
+	"engines": {
+		"node": ">=24.0.0"
+	},
 	"devDependencies": {
-		"@types/node": "^20",
+		"@types/node": "^24.13.3",
 		"@types/react": "^18.3.3",
 		"@types/react-dom": "^18",
 		"eslint": "^8",

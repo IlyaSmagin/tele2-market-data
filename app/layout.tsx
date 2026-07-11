@@ -23,13 +23,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={cn("flex min-h-screen w-full flex-col dark:bg-black dark:text-gray-100 md:grid md:grid-cols-[280px_1fr]", inter.className)}>
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex flex-col border-r bg-background">
-          <div className="flex h-16 items-center justify-center border-b">
+        <aside className="hidden md:h-dvh md:sticky md:top-0 md:flex flex-col border-r bg-background">
+          <header className="flex h-16 items-center justify-center border-b backdrop-blur-sm bg-background">
             <Link href="#" className="flex items-center gap-2 font-semibold" prefetch={false}>
               Tele2 Market
               <span className="sr-only">Tele2 Market</span>
             </Link>
-          </div>
+          </header>
           <div className="flex-1 overflow-auto py-4">
             <NavLinks variant="sidebar" />
           </div>
@@ -38,7 +38,7 @@ export default function RootLayout({
         {/* Main Content */}
         <main className="flex min-h-screen w-full flex-col md:min-h-screen">
           {/* Mobile Header */}
-          <header className="md:hidden flex items-center justify-between h-16 border-b bg-background px-4">
+          <header className="md:hidden flex items-center justify-between h-16 border-b backdrop-blur-sm bg-background px-4 sticky top-0 z-10">
             <Link href="#" className="flex items-center gap-2 font-semibold" prefetch={false}>
               Tele2 Market
               <span className="sr-only">Tele2 Market</span>
@@ -54,14 +54,6 @@ export default function RootLayout({
           <NavLinks variant="bottom" />
         </nav>
         
-        {/* Add padding to main content on mobile to account for bottom navbar */}
-        <style>{`
-          @media (max-width: 768px) {
-            main {
-              padding-bottom: 80px;
-            }
-          }
-        `}</style>
       </body>
     </html>
   );
