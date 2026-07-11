@@ -23,7 +23,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={cn("flex min-h-screen w-full flex-col dark:bg-black dark:text-gray-100 md:grid md:grid-cols-[280px_1fr]", inter.className)}>
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex flex-col border-r bg-background">
+        <aside className="hidden md:h-dvh md:sticky md:top-0 md:flex flex-col border-r bg-background">
           <div className="flex h-16 items-center justify-center border-b">
             <Link href="#" className="flex items-center gap-2 font-semibold" prefetch={false}>
               Tele2 Market
