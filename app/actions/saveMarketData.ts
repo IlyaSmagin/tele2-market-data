@@ -1,6 +1,6 @@
 "use server";
 import { createClient } from "@supabase/supabase-js";
-//  <saveMarketData:
+
 async function saveMarketData() {
 	const supabase = createClient(
 		process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,21 +18,33 @@ async function saveMarketData() {
 			},
 		},
 	);
-	const { meta, data } = await dataPointAPI.json();
+	const { meta, data: apiData } = await dataPointAPI.json();
 	const dbObject = {
 		status: meta.status,
 		message: meta.message,
-		data: data,
-		"1Gb": data[0].count
+		data: apiData,
+		"1Gb": apiData[0].count,
 	};
 	try {
-		const { error: dbError } = await supabase
+		const { data: inserted, error: dbError } = await supabase
 			.from("MarketData")
 			.insert([dbObject])
 			.select();
-		if (dbError) {
-			throw dbError;
-		}
+		if (dbError) throw dbError;
+
+		const tierRows = apiData.map((tier: any) => ({
+			market_data_id: inserted[0].id,
+			volume: tier.volume,
+			min_cost: tier.minCost,
+			avg_cost: tier.avgCost,
+			max_cost: tier.maxCost,
+			count: tier.count,
+		}));
+
+		const { error: tiersError } = await supabase
+			.from("volume_tiers")
+			.insert(tierRows);
+		if (tiersError) throw tiersError;
 	} catch (dbError) {
 		console.log(dbError);
 	} finally {
