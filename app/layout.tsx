@@ -54,14 +54,6 @@ export default function RootLayout({
           <NavLinks variant="bottom" />
         </nav>
         
-        {/* Add padding to main content on mobile to account for bottom navbar */}
-        <style>{`
-          @media (max-width: 768px) {
-            main {
-              padding-bottom: 80px;
-            }
-          }
-        `}</style>
       </body>
     </html>
   );
