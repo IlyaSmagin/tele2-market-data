@@ -1,7 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import getData from "../actions/getData";
+import getLatestVolumeDistribution from "../actions/getLatestVolumeDistribution";
 import LineChart from "../components/chart";
 import DerivativeChart from "../components/derivativeChart";
+import TreeChart from "../components/treeChart";
 
 export const revalidate = 300; // revalidate at most every 5 minutes
 
@@ -12,6 +14,7 @@ type DataBundle = {
 	day: LotData;
 	week: LotData;
 	month: LotData;
+	volumeDistribution: number[];
 };
 
 // Registry of every available graph. To add a new graph, add an entry here
@@ -53,24 +56,34 @@ const GRAPH_REGISTRY: Record<string, GraphDefinition> = {
 		title: "Rate of change of 1 GB lots over the month (folded by day)",
 		render: (data) => <DerivativeChart data={data.month} numberOfLayers={30} />,
 	},
+	"volume-distribution-tree": {
+		id: "volume-distribution-tree",
+		title: "Market volume distribution by GB tier",
+		render: (data) => <TreeChart data={data.volumeDistribution} />,
+	},
 };
 
 // Tab configuration. Each tab lists graph ids in display order — reorder the
 // array to rearrange graphs, or add ids from the registry to include more.
 const TABS: { value: string; label: string; graphs: string[] }[] = [
-	{ value: "24h", label: "24h", graphs: ["1gb-24h", "1gb-derivative-24h"] },
+	{
+		value: "24h",
+		label: "24h",
+		graphs: ["1gb-24h", "1gb-derivative-24h", "volume-distribution-tree"],
+	},
 	{ value: "week", label: "Week", graphs: ["1gb-week-folded", "1gb-derivative-week-folded"] },
 	{ value: "month", label: "Month", graphs: ["1gb-month-folded", "1gb-derivative-month-folded"] },
 ];
 
 export default async function Dashboard() {
 	// 288 points = 24h, 2016 = week, 8640 = month (5-min intervals)
-	const [day, week, month] = await Promise.all([
+	const [day, week, month, volumeDistribution] = await Promise.all([
 		getData(288),
 		getData(2016),
 		getData(8640),
+		getLatestVolumeDistribution(),
 	]);
-	const data: DataBundle = { day, week, month };
+	const data: DataBundle = { day, week, month, volumeDistribution };
 
 	return (
 		<Tabs defaultValue={TABS[0].value}>
