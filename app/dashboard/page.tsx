@@ -1,7 +1,59 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import getData from "../actions/getData";
+import getMarketStats from "../actions/getMarketStats";
 import LineChart from "../components/chart";
 import DerivativeChart from "../components/derivativeChart";
+import StatCard from "../components/statCard";
+
+type LotPoint = { date: string; numberOfLots: number };
+
+// Points per day at the 5-minute cadence (288 = 24h).
+const POINTS_PER_DAY = 288;
+
+function pctDelta(now: number, before: number): number {
+	if (!before) return 0;
+	return ((now - before) / before) * 100;
+}
+
+// Builds the two analytics cards (total lots + 1 GB lots) for a time window.
+// `baselineDays` is how far back the "comparison" point sits (1 = yesterday,
+// 7 = same time last week, 30 = same time last month).
+function MarketCards({
+	series,
+	totalLotsNow,
+	totalLotsBaseline,
+	baselineDays,
+	caption,
+}: {
+	series: LotPoint[];
+	totalLotsNow: number;
+	totalLotsBaseline: number;
+	baselineDays: number;
+	caption: string;
+}) {
+	const oneGbNow = series.length ? series[series.length - 1].numberOfLots : 0;
+	const oneGbBefore = series.length
+		? series[Math.max(0, series.length - 1 - baselineDays * POINTS_PER_DAY)]
+				.numberOfLots
+		: 0;
+
+	return (
+		<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+			<StatCard
+				label="Total lots on market"
+				value={totalLotsNow}
+				deltaPct={pctDelta(totalLotsNow, totalLotsBaseline)}
+				deltaCaption={caption}
+			/>
+			<StatCard
+				label="1 GB lots"
+				value={oneGbNow}
+				deltaPct={pctDelta(oneGbNow, oneGbBefore)}
+				deltaCaption={caption}
+			/>
+		</div>
+	);
+}
 
 export const revalidate = 300; // revalidate at most every 5 minutes
 
@@ -11,7 +63,6 @@ type LotData = { date: string; numberOfLots: number }[];
 type DataBundle = {
 	day: LotData;
 	week: LotData;
-	month: LotData;
 };
 
 // Registry of every available graph. To add a new graph, add an entry here
@@ -33,11 +84,6 @@ const GRAPH_REGISTRY: Record<string, GraphDefinition> = {
 		title: "1 GB lots over the week (folded by day)",
 		render: (data) => <LineChart data={data.week} numberOfLayers={7} />,
 	},
-	"1gb-month-folded": {
-		id: "1gb-month-folded",
-		title: "1 GB lots over the month (folded by day)",
-		render: (data) => <LineChart data={data.month} numberOfLayers={30} />,
-	},
 	"1gb-derivative-24h": {
 		id: "1gb-derivative-24h",
 		title: "Rate of change of 1 GB lots (last 24 hours)",
@@ -48,29 +94,54 @@ const GRAPH_REGISTRY: Record<string, GraphDefinition> = {
 		title: "Rate of change of 1 GB lots over the week (folded by day)",
 		render: (data) => <DerivativeChart data={data.week} numberOfLayers={7} />,
 	},
-	"1gb-derivative-month-folded": {
-		id: "1gb-derivative-month-folded",
-		title: "Rate of change of 1 GB lots over the month (folded by day)",
-		render: (data) => <DerivativeChart data={data.month} numberOfLayers={30} />,
-	},
 };
 
 // Tab configuration. Each tab lists graph ids in display order — reorder the
 // array to rearrange graphs, or add ids from the registry to include more.
-const TABS: { value: string; label: string; graphs: string[] }[] = [
-	{ value: "24h", label: "24h", graphs: ["1gb-24h", "1gb-derivative-24h"] },
-	{ value: "week", label: "Week", graphs: ["1gb-week-folded", "1gb-derivative-week-folded"] },
-	{ value: "month", label: "Month", graphs: ["1gb-month-folded", "1gb-derivative-month-folded"] },
+// `baselineDays` sets how far back the card comparison point sits, and
+// `baselineKey` picks the matching total-lots snapshot from getMarketStats.
+type TabConfig = {
+	value: string;
+	label: string;
+	graphs: string[];
+	baselineDays: number;
+	caption: string;
+	baselineKey: "totalLots1d" | "totalLots7d" | "totalLots30d";
+};
+
+const TABS: TabConfig[] = [
+	{
+		value: "24h",
+		label: "24h",
+		graphs: ["1gb-24h", "1gb-derivative-24h"],
+		baselineDays: 1,
+		caption: "vs yesterday",
+		baselineKey: "totalLots1d",
+	},
+	{
+		value: "week",
+		label: "Week",
+		graphs: ["1gb-week-folded", "1gb-derivative-week-folded"],
+		baselineDays: 7,
+		caption: "vs last week",
+		baselineKey: "totalLots7d",
+	},
 ];
 
 export default async function Dashboard() {
-	// 288 points = 24h, 2016 = week, 8640 = month (5-min intervals)
-	const [day, week, month] = await Promise.all([
+	// 288 points = 24h, 2016 = week
+	const [day, week, stats] = await Promise.all([
 		getData(288),
 		getData(2016),
-		getData(8640),
+		getMarketStats(),
 	]);
-	const data: DataBundle = { day, week, month };
+	const data: DataBundle = { day, week };
+
+	// Map each tab to the series key used in the DataBundle.
+	const tabSeries: Record<string, LotPoint[]> = {
+		"24h": day,
+		week: week,
+	};
 
 	return (
 		<Tabs defaultValue={TABS[0].value}>
@@ -84,6 +155,13 @@ export default async function Dashboard() {
 
 			{TABS.map((tab) => (
 				<TabsContent key={tab.value} value={tab.value} className="flex flex-col gap-6">
+					<MarketCards
+						series={tabSeries[tab.value] ?? []}
+						totalLotsNow={stats.totalLotsNow}
+						totalLotsBaseline={stats[tab.baselineKey]}
+						baselineDays={tab.baselineDays}
+						caption={tab.caption}
+					/>
 					{tab.graphs.map((graphId) => {
 						const graph = GRAPH_REGISTRY[graphId];
 						if (!graph) return null;

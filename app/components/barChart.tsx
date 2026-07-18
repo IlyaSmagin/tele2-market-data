@@ -1,12 +1,13 @@
-"use server";
+"use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 type BarChartProps = {
 	data: number[];
 };
 
 const BarChart = ({ data }: BarChartProps) => {
+	const [hovered, setHovered] = useState<number | null>(null);
 	const chartWidth = 1200;
 	const chartHeight = 600;
 	const offsetY = 40;
@@ -14,14 +15,16 @@ const BarChart = ({ data }: BarChartProps) => {
 	const paddingY = 90;
 
 	const maxY = Math.max(...data);
+	const minY = Math.max(1, Math.min(...data));
 
-	// Log scale — floor at 1 so log10(0) is avoided
-	const logMin = 0;
+	// Log scale fitted to the actually rendered bars so the axis rescales
+	// with the selected range (floor at 1 so log10(0) is avoided).
+	const logMin = Math.log10(minY);
 	const logMax = Math.log10(maxY);
 
-	// One guide line per power of 10 within range
+	// One guide line per power of 10 within the rendered range.
 	const powers: number[] = [];
-	for (let p = 0; p <= Math.ceil(logMax); p++) {
+	for (let p = Math.floor(logMin); p <= Math.ceil(logMax); p++) {
 		powers.push(p);
 	}
 
@@ -35,9 +38,11 @@ const BarChart = ({ data }: BarChartProps) => {
 	const toX = (index: number) =>
 		(index / barCount) * availableWidth + paddingX / 2 + barWidth / 2;
 
+	const logSpan = logMax - logMin || 1;
+
 	const toY = (value: number) => {
 		if (value <= 1) return chartHeight - paddingY;
-		const ratio = (Math.log10(value) - logMin) / (logMax - logMin);
+		const ratio = (Math.log10(value) - logMin) / logSpan;
 		return chartHeight - paddingY - ratio * drawHeight;
 	};
 
@@ -82,37 +87,24 @@ const BarChart = ({ data }: BarChartProps) => {
 				const barTop = toY(value);
 				const barHeight = Math.max(1, baselineY - barTop);
 				const showLabel = index % 10 === 0;
+				const isHot = hovered === index;
 
 				return (
-					<g key={index} className="group">
+					<g key={index}>
 						<rect
 							x={cx - barBodyWidth / 2}
 							y={barTop}
 							width={barBodyWidth}
 							height={barHeight}
-							className="fill-zinc-700 stroke-zinc-600 group-hover:fill-zinc-400 transition-colors"
+							className={
+								isHot
+									? "fill-zinc-400 stroke-zinc-600 transition-colors"
+									: "fill-zinc-700 stroke-zinc-600 transition-colors"
+							}
 							strokeWidth={1}
+							onMouseEnter={() => setHovered(index)}
+							onMouseLeave={() => setHovered((h) => (h === index ? null : h))}
 						/>
-
-						{/* Hover value label */}
-						<g className="opacity-0 group-hover:opacity-100">
-							<circle
-								className="stroke-zinc-500 fill-black"
-								cx={cx}
-								cy={barTop - 12}
-								r={20}
-								strokeWidth={2}
-							/>
-							<text
-								x={cx}
-								y={barTop - 9}
-								textAnchor="middle"
-								fontSize={8}
-								className="font-bold fill-zinc-100 select-none"
-							>
-								{value.toLocaleString()}
-							</text>
-						</g>
 
 						{/* X-axis label every 10 bars */}
 						{showLabel && (
@@ -130,6 +122,33 @@ const BarChart = ({ data }: BarChartProps) => {
 					</g>
 				);
 			})}
+
+			{/* Single shared hover value label */}
+			{hovered !== null && (() => {
+				const value = data[hovered];
+				const cx = toX(hovered);
+				const barTop = toY(value);
+				return (
+					<g className="pointer-events-none">
+						<circle
+							className="stroke-zinc-500 fill-black"
+							cx={cx}
+							cy={barTop - 12}
+							r={20}
+							strokeWidth={2}
+						/>
+						<text
+							x={cx}
+							y={barTop - 9}
+							textAnchor="middle"
+							fontSize={8}
+							className="font-bold fill-zinc-100 select-none"
+						>
+							{value.toLocaleString()}
+						</text>
+					</g>
+				);
+			})()}
 		</svg>
 	);
 };

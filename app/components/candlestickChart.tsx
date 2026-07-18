@@ -1,131 +1,61 @@
-import React from "react";
+"use client";
 
-type DataPoint = {
-	date: string;
-	numberOfLots: number;
-};
+import React, { useState } from "react";
+import type { TierCandle } from "@/lib/range";
 
 type CandlestickChartProps = {
-	data: DataPoint[];
-	bucketCount?: number;
+	data: TierCandle[];
 };
 
-type Bucket = {
-	rangeMin: number;
-	rangeMax: number;
-	rangeMid: number;
-	lotMin: number;
-	lotMax: number;
-	lotMedian: number;
-	count: number;
-};
-
-function computeBuckets(data: DataPoint[], bucketCount: number): Bucket[] {
-	if (data.length === 0) return [];
-
-	const lotValues = data.map((d) => d.numberOfLots);
-	const globalMin = Math.min(...lotValues);
-	const globalMax = Math.max(...lotValues);
-	const bucketSize = (globalMax - globalMin) / bucketCount;
-
-	const buckets: Bucket[] = Array.from({ length: bucketCount }, (_, i) => ({
-		rangeMin: globalMin + i * bucketSize,
-		rangeMax: globalMin + (i + 1) * bucketSize,
-		rangeMid: globalMin + (i + 0.5) * bucketSize,
-		lotMin: Infinity,
-		lotMax: -Infinity,
-		lotMedian: 0,
-		count: 0,
-	}));
-
-	for (const point of data) {
-		const idx = Math.min(
-			Math.floor((point.numberOfLots - globalMin) / bucketSize),
-			bucketCount - 1
-		);
-		const b = buckets[idx];
-		b.count += 1;
-		if (point.numberOfLots < b.lotMin) b.lotMin = point.numberOfLots;
-		if (point.numberOfLots > b.lotMax) b.lotMax = point.numberOfLots;
-	}
-
-	// Compute medians per bucket
-	for (let i = 0; i < bucketCount; i++) {
-		const b = buckets[i];
-		if (b.count === 0) {
-			b.lotMin = 0;
-			b.lotMax = 0;
-			b.lotMedian = 0;
-		} else {
-			const vals = data
-				.filter((d) => {
-					const idx = Math.min(
-						Math.floor((d.numberOfLots - globalMin) / bucketSize),
-						bucketCount - 1
-					);
-					return idx === i;
-				})
-				.map((d) => d.numberOfLots)
-				.sort((a, z) => a - z);
-			const mid = Math.floor(vals.length / 2);
-			b.lotMedian =
-				vals.length % 2 === 0
-					? (vals[mid - 1] + vals[mid]) / 2
-					: vals[mid];
-		}
-	}
-
-	return buckets;
-}
-
-const CandlestickChart = ({
-	data,
-	bucketCount = 12,
-}: CandlestickChartProps) => {
+const CandlestickChart = ({ data }: CandlestickChartProps) => {
+	const [hovered, setHovered] = useState<number | null>(null);
 	const chartWidth = 1200;
 	const chartHeight = 600;
 	const offsetY = 40;
 	const paddingX = 50;
 	const paddingY = 90;
 
-	const buckets = computeBuckets(data, bucketCount);
-	const activeBuckets = buckets.filter((b) => b.count > 0);
-
-	if (activeBuckets.length === 0) {
+	if (data.length === 0) {
 		return (
 			<svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="presentation" />
 		);
 	}
 
-	// Y-axis: numberOfLots (vertical)
-	const allLotValues = activeBuckets.flatMap((b) => [b.lotMin, b.lotMax]);
-	const yMin = Math.min(...allLotValues);
-	const yMax = Math.max(...allLotValues);
+	const maxY = Math.max(...data.map((d) => d.lotMax));
+	const minY = Math.max(1, Math.min(...data.map((d) => d.lotMin)));
 
-	// X-axis: volume range midpoints
-	const xMin = Math.min(...buckets.map((b) => b.rangeMin));
-	const xMax = Math.max(...buckets.map((b) => b.rangeMax));
+	// Log scale fitted to the actually rendered tiers so the axis rescales
+	// with the selected range (floor at 1 so log10(0) is avoided).
+	const logMin = Math.log10(minY);
+	const logMax = Math.log10(maxY);
+	const logSpan = logMax - logMin || 1;
 
-	const toX = (value: number) =>
-		((value - xMin) / (xMax - xMin)) * (chartWidth - paddingX) + paddingX / 2;
+	const drawHeight = chartHeight - paddingY - offsetY;
 
-	const toY = (value: number) =>
-		chartHeight -
-		paddingY -
-		((value - yMin) / (yMax - yMin)) * (chartHeight - paddingY - offsetY);
+	const barCount = data.length;
+	const availableWidth = chartWidth - paddingX;
+	const barWidth = availableWidth / barCount;
+	const candleWidth = Math.max(4, barWidth * 0.45);
+
+	const toX = (index: number) =>
+		(index / barCount) * availableWidth + paddingX / 2 + barWidth / 2;
+
+	const toY = (value: number) => {
+		if (value <= 1) return chartHeight - paddingY;
+		const ratio = (Math.log10(value) - logMin) / logSpan;
+		return chartHeight - paddingY - ratio * drawHeight;
+	};
+
+	const baselineY = chartHeight - paddingY;
 
 	const guides = Array.from({ length: 16 }, (_, i) => i);
-	const candleWidth = Math.max(
-		4,
-		((chartWidth - paddingX) / bucketCount) * 0.45
-	);
 
 	return (
 		<svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="presentation">
 			{/* Guides */}
 			{guides.map((index) => {
 				const ratio = index / (guides.length - 1);
-				const y = chartHeight - paddingY - (chartHeight - paddingY - offsetY) * ratio;
+				const y = chartHeight - paddingY - drawHeight * ratio;
 				return (
 					<polyline
 						key={index}
@@ -142,41 +72,28 @@ const CandlestickChart = ({
 				className="stroke-zinc-700"
 				fill="none"
 				strokeWidth={1}
-				points={`${paddingX / 2},${toY(yMin)} ${chartWidth - paddingX / 2},${toY(yMin)}`}
+				points={`${paddingX / 2},${baselineY} ${chartWidth - paddingX / 2},${baselineY}`}
 			/>
 
-			{/* Candlesticks */}
-			{buckets.map((bucket, i) => {
-				if (bucket.count === 0) return null;
-
-				const cx = toX(bucket.rangeMid);
-				const yTop = toY(bucket.lotMax);
-				const yBottom = toY(bucket.lotMin);
-				const yMed = toY(bucket.lotMedian);
-
-				const bodyTop = Math.min(yMed, yTop);
-				const bodyBottom = Math.max(yMed, yBottom);
-				const bodyHeight = Math.max(1, bodyBottom - bodyTop);
+			{/* Candlesticks: wick (lotMin -> lotMax) + median tick */}
+			{data.map((d, index) => {
+				const cx = toX(index);
+				const yTop = toY(d.lotMax);
+				const yBottom = toY(d.lotMin);
+				const yMed = toY(d.lotMedian);
+				const showLabel = index % 10 === 0 || data.length <= 12;
+				const isHot = hovered === index;
 
 				return (
-					<g key={i} className="opacity-80 hover:opacity-100">
-						{/* Full wick: min to max */}
+					<g key={d.volume}>
+						{/* Wick: lotMin to lotMax */}
 						<line
 							x1={cx}
 							y1={yTop}
 							x2={cx}
 							y2={yBottom}
-							className="stroke-zinc-500"
+							className={isHot ? "stroke-zinc-300" : "stroke-zinc-500"}
 							strokeWidth={2}
-						/>
-						{/* Body: median to max */}
-						<rect
-							x={cx - candleWidth / 2}
-							y={bodyTop}
-							width={candleWidth}
-							height={bodyHeight}
-							className="fill-zinc-600 stroke-zinc-500"
-							strokeWidth={1}
 						/>
 						{/* Median tick */}
 						<line
@@ -184,12 +101,50 @@ const CandlestickChart = ({
 							y1={yMed}
 							x2={cx + candleWidth / 2}
 							y2={yMed}
-							className="stroke-zinc-300"
+							className={isHot ? "stroke-zinc-100" : "stroke-zinc-300"}
 							strokeWidth={2}
 						/>
 
-						{/* Hover label group */}
-						<g className="opacity-0 hover:opacity-100">
+						{/* Invisible hit area spanning the wick height */}
+						<rect
+							x={cx - barWidth / 2}
+							y={Math.min(yTop, yBottom) - 4}
+							width={barWidth}
+							height={Math.abs(yBottom - yTop) + 8}
+							fill="transparent"
+							className="cursor-pointer"
+							onMouseEnter={() => setHovered(index)}
+							onMouseLeave={() => setHovered((h) => (h === index ? null : h))}
+						/>
+
+						{/* X-axis label every 10 tiers */}
+						{showLabel && (
+							<g transform={`translate(${cx} ${chartHeight - (paddingY - offsetY)})`}>
+								<text
+									transform="rotate(45)"
+									textAnchor="start"
+									fontSize={10}
+									className="fill-zinc-600 select-none"
+								>
+									{d.volume} GB
+								</text>
+							</g>
+						)}
+					</g>
+				);
+			})}
+
+			{/* Single shared hover overlay (tooltip + left-axis legend) */}
+			{hovered !== null &&
+				(() => {
+					const d = data[hovered];
+					const cx = toX(hovered);
+					const yTop = toY(d.lotMax);
+					const yBottom = toY(d.lotMin);
+					const yMed = toY(d.lotMedian);
+					return (
+						<g className="pointer-events-none">
+							{/* Hover label (median) */}
 							<circle
 								className="stroke-zinc-500 fill-black"
 								cx={cx}
@@ -204,24 +159,59 @@ const CandlestickChart = ({
 								fontSize={8}
 								className="font-bold fill-zinc-100 select-none"
 							>
-								{bucket.lotMax}
+								{Math.round(d.lotMedian).toLocaleString()}
 							</text>
-						</g>
 
-						{/* X-axis label: volume range */}
-						<g transform={`translate(${cx} ${chartHeight - (paddingY - offsetY)})`}>
+							{/* Left-axis legend: top (max) and min values */}
+							<line
+								x1={paddingX / 2}
+								y1={yTop}
+								x2={cx - candleWidth / 2}
+								y2={yTop}
+								className="stroke-zinc-500"
+								strokeWidth={1}
+							/>
+							<line
+								x1={paddingX / 2}
+								y1={yBottom}
+								x2={cx - candleWidth / 2}
+								y2={yBottom}
+								className="stroke-zinc-500"
+								strokeWidth={1}
+							/>
+							<circle cx={paddingX / 2} cy={yTop} r={3} className="fill-zinc-300" />
+							<circle cx={paddingX / 2} cy={yBottom} r={3} className="fill-zinc-500" />
 							<text
-								transform="rotate(45)"
-								textAnchor="start"
-								fontSize={10}
-								className="fill-zinc-600 select-none"
+								x={paddingX / 2 - 6}
+								y={yTop + 3}
+								textAnchor="end"
+								fontSize={8}
+								className="font-bold fill-zinc-100 select-none"
 							>
-								{Math.round(bucket.rangeMin / 1000)}k–{Math.round(bucket.rangeMax / 1000)}k
+								{Math.round(d.lotMax).toLocaleString()}
+							</text>
+							<text
+								x={paddingX / 2 - 6}
+								y={yBottom + 3}
+								textAnchor="end"
+								fontSize={8}
+								className="font-bold fill-zinc-400 select-none"
+							>
+								{Math.round(d.lotMin).toLocaleString()}
+							</text>
+							{/* median marker on axis */}
+							<text
+								x={paddingX / 2 - 6}
+								y={yMed + 3}
+								textAnchor="end"
+								fontSize={8}
+								className="font-bold fill-zinc-200 select-none"
+							>
+								{Math.round(d.lotMedian).toLocaleString()}
 							</text>
 						</g>
-					</g>
-				);
-			})}
+					);
+				})()}
 		</svg>
 	);
 };

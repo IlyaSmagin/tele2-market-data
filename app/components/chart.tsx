@@ -1,4 +1,7 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
+
 type ChartProps = {
 	numberOfLayers?: number;
 	data: {
@@ -13,19 +16,20 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 	const offsetY = 40;
 	const paddingX = 50;
 	const paddingY = 90;
-	//TODO remove destructing array twice
+	const [hovered, setHovered] = useState<number | null>(null);
+
 	const maxY = Math.max(...data.map((item) => item.numberOfLots));
 	const minY = Math.min(...data.map((item) => item.numberOfLots));
-	//TODO easier guides array creation
-	const guides = Array.from({length: 16}, (_, i) => i++);
-	const layers = Array.from({length: numberOfLayers}, (_, i) => i++);
+	const guides = Array.from({ length: 16 }, (_, i) => i++);
+	const layers = Array.from({ length: numberOfLayers }, (_, i) => i++);
 
 	const properties = data.map((property, index) => {
 		const { numberOfLots, date } = property;
 		const relativeLotsCount = numberOfLots - minY;
 		const x =
-		(index%(data.length/numberOfLayers) / (data.length/numberOfLayers)) * (chartWidth - paddingX) + paddingX / 2;
-		//TODO extract logical computation into separate variables
+			(index % (data.length / numberOfLayers) / (data.length / numberOfLayers)) *
+				(chartWidth - paddingX) +
+			paddingX / 2;
 		const y =
 			chartHeight -
 			(relativeLotsCount / (maxY - minY)) *
@@ -39,16 +43,16 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 		};
 	});
 
-	const points = properties
-		.map((point) => {
-			const { x, y } = point;
-			return `${x},${y}`;
-		});
+	const points = properties.map((point) => {
+		const { x, y } = point;
+		return `${x},${y}`;
+	});
+
+	const active = hovered !== null ? properties[hovered] : null;
 
 	return (
 		<svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="presentation">
-
-			{/*Guides TODO: move .map out of return, then extract to separate component*/}
+			{/* Guides */}
 			{guides.map((index) => {
 				const ratio = index / (guides.length - 1);
 				const y = chartHeight - paddingY - chartHeight * ratio;
@@ -66,66 +70,94 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 				);
 			})}
 
-			{/*Main line TODO: move into different component*/}
-			{layers.map(layer => {
-				//only up to 9 layers for now
-				// console.log(`0.${100-(layers.length-layer)*10+9}`)
+			{/* Main line */}
+			{layers.map((layer) => {
 				return (
 					<polyline
 						fill="none"
 						className={`stroke-zinc-600`}
-						style={{opacity:`0.${100-(layers.length-layer)*10 + 9}`}}
+						style={{ opacity: `0.${100 - (layers.length - layer) * 10 + 9}` }}
 						strokeWidth={2}
 						key={`layer-${layer}`}
-						points={points.slice(layer*points.length/numberOfLayers, (layer+1)*points.length/numberOfLayers).join(" ")}
+						points={points
+							.slice(
+								(layer * points.length) / numberOfLayers,
+								((layer + 1) * points.length) / numberOfLayers
+							)
+							.join(" ")}
 					/>
-				)
-			})}
-
-			{/*Labels*/}
-			{properties.map((property, index) => {
-				const { total, date, x, y } = property;
-
-				return (
-					<g key={index} className="opacity-0 hover:opacity-100">
-						<circle
-							className="stroke-zinc-500 fill-black"
-							cx={x}
-							cy={y}
-							r={20}
-							strokeWidth={2}
-						/>
-						<text
-							x={x}
-							y={y + 2.8}
-							textAnchor="middle"
-							fontSize={8}
-							className="font-bold fill-zinc-100 select-none"
-						>
-							{total}
-						</text>
-
-						<g
-							transform={`translate(${x} ${
-								chartHeight - (paddingY - offsetY)
-							})`}
-						>
-							{/* transformOrigin="50% 50%"*/}
-							<text
-								transform="rotate(45)"
-								textAnchor="start"
-								fontSize={10}
-								className="fill-zinc-600 select-none"
-							>
-								{new Date(date).toLocaleTimeString([], {
-									hour: "2-digit",
-									minute: "2-digit",
-								})}
-							</text>
-						</g>
-					</g>
 				);
 			})}
+
+			{/* Single transparent overlay — nearest-point hover, no per-point DOM */}
+			<rect
+				x={paddingX / 2}
+				y={offsetY}
+				width={chartWidth - paddingX}
+				height={chartHeight - paddingY - offsetY}
+				fill="transparent"
+				className="cursor-pointer"
+				onMouseMove={(e) => {
+					const svg = e.currentTarget.ownerSVGElement;
+					if (!svg) return;
+					const rectBox = svg.getBoundingClientRect();
+					const scale = chartWidth / rectBox.width;
+					const clientX = (e.clientX - rectBox.left) * scale;
+					let nearest = 0;
+					let best = Infinity;
+					for (let i = 0; i < properties.length; i++) {
+						const dx = properties[i].x - clientX;
+						// `<=` (not `<`) so that on tied dx — which happens for
+						// every day sharing an x-slot in folded charts — the
+						// latest (largest index) day wins instead of the first.
+						if (dx * dx <= best) {
+							best = dx * dx;
+							nearest = i;
+						}
+					}
+					setHovered(nearest);
+				}}
+				onMouseLeave={() => setHovered(null)}
+			/>
+
+			{/* Single shared tooltip */}
+			{active && (
+				<g className="pointer-events-none">
+					<circle
+						className="stroke-zinc-500 fill-black"
+						cx={active.x}
+						cy={active.y}
+						r={20}
+						strokeWidth={2}
+					/>
+					<text
+						x={active.x}
+						y={active.y + 2.8}
+						textAnchor="middle"
+						fontSize={8}
+						className="font-bold fill-zinc-100 select-none"
+					>
+						{active.total}
+					</text>
+					<g
+						transform={`translate(${active.x} ${
+							chartHeight - (paddingY - offsetY)
+						})`}
+					>
+						<text
+							transform="rotate(45)"
+							textAnchor="start"
+							fontSize={10}
+							className="fill-zinc-600 select-none"
+						>
+							{new Date(active.date).toLocaleTimeString([], {
+								hour: "2-digit",
+								minute: "2-digit",
+							})}
+						</text>
+					</g>
+				</g>
+			)}
 		</svg>
 	);
 };

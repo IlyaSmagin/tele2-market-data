@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 
 type DerivativeChartProps = {
 	numberOfLayers?: number;
@@ -22,12 +24,13 @@ const percentile = (sorted: number[], p: number) => {
 // consecutive data points. Positive values mean lots are being added to the
 // market, negative values mean they are being sold/removed.
 //
-// Anomalies such as end-of-day bulk deletions produce huge one-off spikes that
-// dominate the vertical scale and drown out the meaningful day-to-day flow. To
-// keep the derivative smooth we winsorize the deltas: values outside the
-// interquartile whiskers (Tukey's 1.5*IQR fences) are clamped to those bounds
-// so a single anomaly no longer squashes the rest of the chart.
+	// Anomalies such as end-of-day bulk deletions produce huge one-off spikes that
+	// dominate the vertical scale and drown out the meaningful day-to-day flow. To
+	// keep the derivative smooth we winsorize the deltas: values outside the
+	// interquartile whiskers (Tukey's 1.5*IQR fences) are clamped to those bounds
+	// so a single anomaly no longer squashes the rest of the chart.
 const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => {
+	const [hovered, setHovered] = useState<number | null>(null);
 	const chartWidth = 1200;
 	const chartHeight = 600;
 	const offsetY = 40;
@@ -144,53 +147,89 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 				/>
 			))}
 
-			{/* Labels */}
-			{properties.map((property, index) => {
-				const { delta, rawDelta, clamped, date, x, y } = property;
-				return (
-					<g key={index} className="opacity-0 hover:opacity-100">
-						<circle
-							className={
-								clamped
-									? "stroke-zinc-400 fill-black"
-									: "stroke-zinc-500 fill-black"
-							}
-							cx={x}
-							cy={y}
-							r={20}
-							strokeWidth={2}
-							strokeDasharray={clamped ? "3 3" : undefined}
-						/>
-						<text
-							x={x}
-							y={y + 2.8}
-							textAnchor="middle"
-							fontSize={8}
-							className="font-bold fill-zinc-100 select-none"
-						>
-							{clamped
-								? `${rawDelta > 0 ? "+" : ""}${rawDelta} (smoothed)`
-								: delta > 0
-								? `+${delta}`
-								: delta}
-						</text>
+			{/* Single transparent overlay — nearest-point hover, no per-point DOM */}
+			<rect
+				x={paddingX / 2}
+				y={offsetY}
+				width={chartWidth - paddingX}
+				height={chartHeight - paddingY - offsetY}
+				fill="transparent"
+				className="cursor-pointer"
+				onMouseMove={(e) => {
+					const svg = e.currentTarget.ownerSVGElement;
+					if (!svg) return;
+					const rectBox = svg.getBoundingClientRect();
+					const scale = chartWidth / rectBox.width;
+					const clientX = (e.clientX - rectBox.left) * scale;
+					let nearest = 0;
+					let best = Infinity;
+					for (let i = 0; i < properties.length; i++) {
+						const dx = properties[i].x - clientX;
+						// `<=` (not `<`) so that on tied dx — which happens for
+						// every day sharing an x-slot in folded charts — the
+						// latest (largest index) day wins instead of the first.
+						if (dx * dx <= best) {
+							best = dx * dx;
+							nearest = i;
+						}
+					}
+					setHovered(nearest);
+				}}
+				onMouseLeave={() => setHovered(null)}
+			/>
 
-						<g transform={`translate(${x} ${chartHeight - (paddingY - offsetY)})`}>
+			{/* Single shared tooltip */}
+			{hovered !== null &&
+				(() => {
+					const { delta, rawDelta, clamped, date, x, y } = properties[hovered];
+					return (
+						<g className="pointer-events-none">
+							<circle
+								className={
+									clamped
+										? "stroke-zinc-400 fill-black"
+										: "stroke-zinc-500 fill-black"
+								}
+								cx={x}
+								cy={y}
+								r={20}
+								strokeWidth={2}
+								strokeDasharray={clamped ? "3 3" : undefined}
+							/>
 							<text
-								transform="rotate(45)"
-								textAnchor="start"
-								fontSize={10}
-								className="fill-zinc-600 select-none"
+								x={x}
+								y={y + 2.8}
+								textAnchor="middle"
+								fontSize={8}
+								className="font-bold fill-zinc-100 select-none"
 							>
-								{new Date(date).toLocaleTimeString([], {
-									hour: "2-digit",
-									minute: "2-digit",
-								})}
+								{clamped
+									? `${rawDelta > 0 ? "+" : ""}${rawDelta} (smoothed)`
+									: delta > 0
+									? `+${delta}`
+									: delta}
 							</text>
+
+							<g
+								transform={`translate(${x} ${
+									chartHeight - (paddingY - offsetY)
+								})`}
+							>
+								<text
+									transform="rotate(45)"
+									textAnchor="start"
+									fontSize={10}
+									className="fill-zinc-600 select-none"
+								>
+									{new Date(date).toLocaleTimeString([], {
+										hour: "2-digit",
+										minute: "2-digit",
+									})}
+								</text>
+							</g>
 						</g>
-					</g>
-				);
-			})}
+					);
+				})()}
 		</svg>
 	);
 };
