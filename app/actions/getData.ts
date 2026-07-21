@@ -53,8 +53,7 @@ async function getData(data_length: number, treshhold = 100000, volume?: number)
 
 	const { data, error } = await supabase
 		.from("MarketData")
-		.select("created_at, 1Gb")
-		.gt("1Gb", `${treshhold}`)
+		.select("created_at, id, volume_tiers(volume, count)")
 		.order("id", { ascending: false })
 		.limit(data_length);
 
@@ -67,11 +66,25 @@ async function getData(data_length: number, treshhold = 100000, volume?: number)
 		return generateDummyData(data_length);
 	}
 
-	const graphData = (data as { created_at: string; "1Gb": number }[])
-		.map((dataPoint) => ({
-			date: dataPoint.created_at,
-			numberOfLots: dataPoint["1Gb"],
-		}))
+	const graphData = (data as any[])
+		.map((row) => {
+			const tiers = (row.volume_tiers || []) as {
+				volume: number;
+				count: number;
+			}[];
+			if (tiers.length === 0) return null;
+			const smallestTier = tiers.reduce((a, b) =>
+				a.volume < b.volume ? a : b
+			);
+			return {
+				date: row.created_at,
+				numberOfLots: smallestTier.count,
+			};
+		})
+		.filter(
+			(row): row is { date: string; numberOfLots: number } =>
+				row !== null && row.numberOfLots > treshhold
+		)
 		.reverse();
 	return graphData;
 }
