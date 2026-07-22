@@ -204,16 +204,18 @@ export default async function Dashboard() {
 						callsTotalNow={callsStats.totalLotsNow}
 						callsTotalBaseline={callsStats[tab.baselineKey]}
 					/>
-					{tab.graphs.map((graphId) => {
-						const graph = GRAPH_REGISTRY[graphId];
-						if (!graph) return null;
-						return (
-							<section key={graph.id}>
-								<h1 className="text-2xl">{graph.title}</h1>
-								{graph.render(data)}
-							</section>
-						);
-					})}
+					<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+						{tab.graphs.map((graphId) => {
+							const graph = GRAPH_REGISTRY[graphId];
+							if (!graph) return null;
+							return (
+								<section key={graph.id}>
+									<h1 className="text-2xl mb-2">{graph.title}</h1>
+									{graph.render(data)}
+								</section>
+							);
+						})}
+					</div>
 				</TabsContent>
 			))}
 		</Tabs>
