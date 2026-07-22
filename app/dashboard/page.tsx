@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import getData from "../actions/getData";
 import getCallsData from "../actions/getCallsData";
+import getCallsStats from "../actions/getCallsStats";
 import getMarketStats from "../actions/getMarketStats";
 import LineChart from "../components/chart";
 import DerivativeChart from "../components/derivativeChart";
@@ -16,7 +17,7 @@ function pctDelta(now: number, before: number): number {
 	return ((now - before) / before) * 100;
 }
 
-// Builds the two analytics cards (total lots + 1 GB lots) for a time window.
+// Builds the analytics cards (internet lots + calls lots) for a time window.
 // `baselineDays` is how far back the "comparison" point sits (1 = yesterday,
 // 7 = same time last week, 30 = same time last month).
 function MarketCards({
@@ -25,12 +26,18 @@ function MarketCards({
 	totalLotsBaseline,
 	baselineDays,
 	caption,
+	callsSeries,
+	callsTotalNow,
+	callsTotalBaseline,
 }: {
 	series: LotPoint[];
 	totalLotsNow: number;
 	totalLotsBaseline: number;
 	baselineDays: number;
 	caption: string;
+	callsSeries: LotPoint[];
+	callsTotalNow: number;
+	callsTotalBaseline: number;
 }) {
 	const oneGbNow = series.length ? series[series.length - 1].numberOfLots : 0;
 	const oneGbBefore = series.length
@@ -38,18 +45,36 @@ function MarketCards({
 				.numberOfLots
 		: 0;
 
+	const fiftyMinNow = callsSeries.length ? callsSeries[callsSeries.length - 1].numberOfLots : 0;
+	const fiftyMinBefore = callsSeries.length
+		? callsSeries[Math.max(0, callsSeries.length - 1 - baselineDays * POINTS_PER_DAY)]
+				.numberOfLots
+		: 0;
+
 	return (
 		<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 			<StatCard
-				label="Total lots on market"
+				label="Total internet lots on market"
 				value={totalLotsNow}
 				deltaPct={pctDelta(totalLotsNow, totalLotsBaseline)}
 				deltaCaption={caption}
 			/>
 			<StatCard
-				label="1 GB lots"
+				label="1 GB internet lots"
 				value={oneGbNow}
 				deltaPct={pctDelta(oneGbNow, oneGbBefore)}
+				deltaCaption={caption}
+			/>
+			<StatCard
+				label="Total call lots on market"
+				value={callsTotalNow}
+				deltaPct={pctDelta(callsTotalNow, callsTotalBaseline)}
+				deltaCaption={caption}
+			/>
+			<StatCard
+				label="50 min lots"
+				value={fiftyMinNow}
+				deltaPct={pctDelta(fiftyMinNow, fiftyMinBefore)}
 				deltaCaption={caption}
 			/>
 		</div>
@@ -142,11 +167,12 @@ const TABS: TabConfig[] = [
 
 export default async function Dashboard() {
 	// 288 points = 24h, 2016 = week
-	const [day, week, stats, callsDay] = await Promise.all([
+	const [day, week, stats, callsDay, callsStats] = await Promise.all([
 		getData(288),
 		getData(2016),
 		getMarketStats(),
 		getCallsData(288, 0, 50),
+		getCallsStats(),
 	]);
 	const data: DataBundle = { day, week, callsDay };
 
@@ -174,6 +200,9 @@ export default async function Dashboard() {
 						totalLotsBaseline={stats[tab.baselineKey]}
 						baselineDays={tab.baselineDays}
 						caption={tab.caption}
+						callsSeries={callsDay}
+						callsTotalNow={callsStats.totalLotsNow}
+						callsTotalBaseline={callsStats[tab.baselineKey]}
 					/>
 					{tab.graphs.map((graphId) => {
 						const graph = GRAPH_REGISTRY[graphId];
