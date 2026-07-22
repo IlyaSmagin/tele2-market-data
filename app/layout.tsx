@@ -50,7 +50,7 @@ export default function RootLayout({
         </main>
         
         {/* Mobile Bottom Navbar */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t backdrop-blur-sm bg-background">
           <NavLinks variant="bottom" />
         </nav>
         
