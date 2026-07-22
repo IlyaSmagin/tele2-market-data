@@ -18,7 +18,7 @@ function generateDummyData(data_length: number): { date: string; numberOfLots: n
 	return dummyData;
 }
 
-async function getData(data_length: number, treshhold = 100000, volume?: number) {
+async function getCallsData(data_length: number, treshhold = 100000, volume?: number) {
 	const supabase = createClient(
 		process.env.NEXT_PUBLIC_SUPABASE_URL!,
 		process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -27,9 +27,9 @@ async function getData(data_length: number, treshhold = 100000, volume?: number)
 	if (volume !== undefined) {
 		const { data, error } = await supabase
 			.from("MarketData")
-			.select("created_at, volume_tiers!inner(count)")
-			.eq("volume_tiers.volume", volume)
-			.gt("volume_tiers.count", `${treshhold}`)
+			.select("created_at, calls!inner(count)")
+			.eq("calls.volume", volume)
+			.gt("calls.count", `${treshhold}`)
 			.order("id", { ascending: false })
 			.limit(data_length);
 
@@ -45,7 +45,7 @@ async function getData(data_length: number, treshhold = 100000, volume?: number)
 		const graphData = (data as any[])
 			.map((row) => ({
 				date: row.created_at,
-				numberOfLots: row.volume_tiers?.[0]?.count ?? 0,
+				numberOfLots: row.calls?.[0]?.count ?? 0,
 			}))
 			.reverse();
 		return graphData;
@@ -53,9 +53,9 @@ async function getData(data_length: number, treshhold = 100000, volume?: number)
 
 	const { data, error } = await supabase
 		.from("MarketData")
-		.select("created_at, volume_tiers!inner(count)")
-		.eq("volume_tiers.volume", 1)
-		.gt("volume_tiers.count", `${treshhold}`)
+		.select("created_at, calls!inner(count)")
+		.eq("calls.volume", 1)
+		.gt("calls.count", `${treshhold}`)
 		.order("id", { ascending: false })
 		.limit(data_length);
 
@@ -71,9 +71,10 @@ async function getData(data_length: number, treshhold = 100000, volume?: number)
 	const graphData = (data as any[])
 		.map((row) => ({
 			date: row.created_at,
-			numberOfLots: row.volume_tiers?.[0]?.count ?? 0,
+			numberOfLots: row.calls?.[0]?.count ?? 0,
 		}))
 		.reverse();
 	return graphData;
 }
-export default getData;
+
+export default getCallsData;

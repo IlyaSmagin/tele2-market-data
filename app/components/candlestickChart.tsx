@@ -5,9 +5,10 @@ import type { TierCandle } from "@/lib/range";
 
 type CandlestickChartProps = {
 	data: TierCandle[];
+	unitLabel?: string;
 };
 
-const CandlestickChart = ({ data }: CandlestickChartProps) => {
+const CandlestickChart = ({ data, unitLabel = "GB" }: CandlestickChartProps) => {
 	const [hovered, setHovered] = useState<number | null>(null);
 	const chartWidth = 1200;
 	const chartHeight = 600;
@@ -126,7 +127,7 @@ const CandlestickChart = ({ data }: CandlestickChartProps) => {
 									fontSize={10}
 									className="fill-zinc-600 select-none"
 								>
-									{d.volume} GB
+									{d.volume} {unitLabel}
 								</text>
 							</g>
 						)}

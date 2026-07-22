@@ -15,6 +15,7 @@ import {
 type RangePickerProps = {
 	selection: RangeSelection;
 	className?: string;
+	unitLabel?: string;
 };
 
 const MODE_LABELS: { mode: RangeMode; label: string }[] = [
@@ -23,7 +24,7 @@ const MODE_LABELS: { mode: RangeMode; label: string }[] = [
 	{ mode: "custom", label: "Custom range" },
 ];
 
-const RangePicker = ({ selection, className }: RangePickerProps) => {
+const RangePicker = ({ selection, className, unitLabel = "GB" }: RangePickerProps) => {
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -110,7 +111,7 @@ const RangePicker = ({ selection, className }: RangePickerProps) => {
 						className="h-8 w-16 rounded-md border border-zinc-300 bg-transparent px-2 text-right dark:border-zinc-700"
 						aria-label="Maximum volume tier"
 					/>
-					<span className="pr-1">GB</span>
+					<span className="pr-1">{unitLabel}</span>
 					<button
 						type="button"
 						onClick={applyCustom}

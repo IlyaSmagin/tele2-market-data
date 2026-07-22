@@ -17,7 +17,7 @@ const navLinks: NavLink[] = [
   { href: '/home', label: 'Home', icon: '🏠' },
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
   { href: '/internet', label: 'Internet', icon: '🌐' },
-  { href: '#', label: 'Calls', icon: '☎️', disabled: true },
+  { href: '/calls', label: 'Calls', icon: '☎️' },
   { href: '#', label: 'Messages', icon: '💬', disabled: true },
   { href: '#', label: 'Settings', icon: '⚙️', disabled: true },
 ];

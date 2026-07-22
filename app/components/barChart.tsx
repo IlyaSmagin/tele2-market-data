@@ -4,9 +4,10 @@ import React, { useState } from "react";
 
 type BarChartProps = {
 	data: number[];
+	unitLabel?: string;
 };
 
-const BarChart = ({ data }: BarChartProps) => {
+const BarChart = ({ data, unitLabel = "GB" }: BarChartProps) => {
 	const [hovered, setHovered] = useState<number | null>(null);
 	const chartWidth = 1200;
 	const chartHeight = 600;
@@ -115,7 +116,7 @@ const BarChart = ({ data }: BarChartProps) => {
 									fontSize={10}
 									className="fill-zinc-600 select-none"
 								>
-									{index + 1} GB
+									{index + 1} {unitLabel}
 								</text>
 							</g>
 						)}

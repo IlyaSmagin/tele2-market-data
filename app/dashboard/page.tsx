@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import getData from "../actions/getData";
+import getCallsData from "../actions/getCallsData";
 import getMarketStats from "../actions/getMarketStats";
 import LineChart from "../components/chart";
 import DerivativeChart from "../components/derivativeChart";
@@ -63,6 +64,7 @@ type LotData = { date: string; numberOfLots: number }[];
 type DataBundle = {
 	day: LotData;
 	week: LotData;
+	callsDay: LotData;
 };
 
 // Registry of every available graph. To add a new graph, add an entry here
@@ -94,6 +96,16 @@ const GRAPH_REGISTRY: Record<string, GraphDefinition> = {
 		title: "Rate of change of 1 GB lots over the week (folded by day)",
 		render: (data) => <DerivativeChart data={data.week} numberOfLayers={7} />,
 	},
+	"calls-50-24h": {
+		id: "calls-50-24h",
+		title: "Number of 50 min lots in the last 24 hours",
+		render: (data) => <LineChart data={data.callsDay} />,
+	},
+	"calls-50-derivative-24h": {
+		id: "calls-50-derivative-24h",
+		title: "Rate of change of 50 min lots (last 24 hours)",
+		render: (data) => <DerivativeChart data={data.callsDay} />,
+	},
 };
 
 // Tab configuration. Each tab lists graph ids in display order — reorder the
@@ -113,7 +125,7 @@ const TABS: TabConfig[] = [
 	{
 		value: "24h",
 		label: "24h",
-		graphs: ["1gb-24h", "1gb-derivative-24h"],
+		graphs: ["1gb-24h", "1gb-derivative-24h", "calls-50-24h", "calls-50-derivative-24h"],
 		baselineDays: 1,
 		caption: "vs yesterday",
 		baselineKey: "totalLots1d",
@@ -130,12 +142,13 @@ const TABS: TabConfig[] = [
 
 export default async function Dashboard() {
 	// 288 points = 24h, 2016 = week
-	const [day, week, stats] = await Promise.all([
+	const [day, week, stats, callsDay] = await Promise.all([
 		getData(288),
 		getData(2016),
 		getMarketStats(),
+		getCallsData(288, 0, 50),
 	]);
-	const data: DataBundle = { day, week };
+	const data: DataBundle = { day, week, callsDay };
 
 	// Map each tab to the series key used in the DataBundle.
 	const tabSeries: Record<string, LotPoint[]> = {
