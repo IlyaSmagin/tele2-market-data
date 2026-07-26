@@ -2,15 +2,18 @@
 
 import React, { useState } from "react";
 
-type ChartProps = {
-	numberOfLayers?: number;
-	data: {
-		date: string;
-		numberOfLots: number;
-	}[];
+type Point = {
+	date: string;
+	numberOfLots: number;
 };
 
-const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
+type ChartProps = {
+	numberOfLayers?: number;
+	data?: Point[];
+	segments?: Point[][];
+};
+
+const LineChart = ({ data, numberOfLayers = 1, segments }: ChartProps) => {
 	const chartWidth = 1200;
 	const chartHeight = 600;
 	const offsetY = 40;
@@ -18,18 +21,38 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 	const paddingY = 90;
 	const [hovered, setHovered] = useState<number | null>(null);
 
-	const maxY = Math.max(...data.map((item) => item.numberOfLots));
-	const minY = Math.min(...data.map((item) => item.numberOfLots));
-	const guides = Array.from({ length: 16 }, (_, i) => i++);
-	const layers = Array.from({ length: numberOfLayers }, (_, i) => i++);
+	const pointsData = segments ? segments.flat() : data ?? [];
+	const layerCount = segments ? segments.length : numberOfLayers;
 
-	const properties = data.map((property, index) => {
+	const maxY = Math.max(...pointsData.map((item) => item.numberOfLots));
+	const minY = Math.min(...pointsData.map((item) => item.numberOfLots));
+	const guides = Array.from({ length: 16 }, (_, i) => i++);
+
+	function computeX(index: number): number {
+		if (!segments) {
+			const d = data ?? [];
+			return (
+				(index % (d.length / numberOfLayers) / (d.length / numberOfLayers)) *
+					(chartWidth - paddingX) +
+				paddingX / 2
+			);
+		}
+		const POINTS_PER_DAY = 288;
+	let cursor = 0;
+		for (let s = 0; s < segments.length; s++) {
+			if (index < cursor + segments[s].length) {
+				const posInSeg = index - cursor;
+				return (posInSeg / POINTS_PER_DAY) * (chartWidth - paddingX) + paddingX / 2;
+			}
+			cursor += segments[s].length;
+		}
+		return paddingX / 2;
+	}
+
+	const properties = pointsData.map((property, index) => {
 		const { numberOfLots, date } = property;
 		const relativeLotsCount = numberOfLots - minY;
-		const x =
-			(index % (data.length / numberOfLayers) / (data.length / numberOfLayers)) *
-				(chartWidth - paddingX) +
-			paddingX / 2;
+		const x = computeX(index);
 		const y =
 			chartHeight -
 			(relativeLotsCount / (maxY - minY)) *
@@ -43,10 +66,31 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 		};
 	});
 
-	const points = properties.map((point) => {
-		const { x, y } = point;
-		return `${x},${y}`;
-	});
+	const layers = Array.from({ length: layerCount }, (_, i) => i);
+
+	const polylines = (() => {
+		if (!segments) {
+			const flatPoints = properties.map((p) => `${p.x},${p.y}`);
+			return layers.map((layer) => ({
+				points: flatPoints
+					.slice(
+						(layer * flatPoints.length) / numberOfLayers,
+						((layer + 1) * flatPoints.length) / numberOfLayers
+					)
+					.join(" "),
+				index: layer,
+			}));
+		}
+		let cursor = 0;
+		return segments.map((seg, layer) => {
+			const segPoints = properties.slice(cursor, cursor + seg.length);
+			cursor += seg.length;
+			return {
+				points: segPoints.map((p) => `${p.x},${p.y}`).join(" "),
+				index: layer,
+			};
+		});
+	})();
 
 	const active = hovered !== null ? properties[hovered] : null;
 
@@ -70,24 +114,45 @@ const LineChart = ({ data, numberOfLayers = 1 }: ChartProps) => {
 				);
 			})}
 
-			{/* Main line */}
-			{layers.map((layer) => {
+			{/* Layers */}
+			{polylines.map(({ points, index: layer }) => {
 				return (
 					<polyline
 						fill="none"
 						className={`stroke-zinc-600`}
-						style={{ opacity: `0.${100 - (layers.length - layer) * 10 + 9}` }}
+						style={{ opacity: `0.${100 - (layerCount - layer) * 10 + 9}` }}
 						strokeWidth={2}
 						key={`layer-${layer}`}
-						points={points
-							.slice(
-								(layer * points.length) / numberOfLayers,
-								((layer + 1) * points.length) / numberOfLayers
-							)
-							.join(" ")}
+						points={points}
 					/>
 				);
 			})}
+
+			{/* Live market state point */}
+			{segments && properties.length > 0 && (() => {
+				const last = properties[properties.length - 1];
+				return (
+					<>
+						<circle className="fill-zinc-600" cx={last.x} cy={last.y} r={4} />
+						<circle className="fill-zinc-600" cx={last.x} cy={last.y} r={4}>
+							<animate
+								attributeName="r"
+								values="4;4;8;4"
+								keyTimes="0;0.834;0.917;1"
+								dur="6s"
+								repeatCount="indefinite"
+							/>
+							<animate
+								attributeName="opacity"
+								values="0.8;0.8;0;0.8"
+								keyTimes="0;0.834;0.917;1"
+								dur="6s"
+								repeatCount="indefinite"
+							/>
+						</circle>
+					</>
+				);
+			})()}
 
 			{/* Single transparent overlay — nearest-point hover, no per-point DOM */}
 			<rect

@@ -2,12 +2,15 @@
 
 import React, { useState } from "react";
 
+type Point = {
+	date: string;
+	numberOfLots: number;
+};
+
 type DerivativeChartProps = {
 	numberOfLayers?: number;
-	data: {
-		date: string;
-		numberOfLots: number;
-	}[];
+	data?: Point[];
+	segments?: Point[][];
 };
 
 // Returns the value at the given percentile (0-1) of a numeric array.
@@ -24,12 +27,12 @@ const percentile = (sorted: number[], p: number) => {
 // consecutive data points. Positive values mean lots are being added to the
 // market, negative values mean they are being sold/removed.
 //
-	// Anomalies such as end-of-day bulk deletions produce huge one-off spikes that
-	// dominate the vertical scale and drown out the meaningful day-to-day flow. To
-	// keep the derivative smooth we winsorize the deltas: values outside the
-	// interquartile whiskers (Tukey's 1.5*IQR fences) are clamped to those bounds
-	// so a single anomaly no longer squashes the rest of the chart.
-const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => {
+// Anomalies such as end-of-day bulk deletions produce huge one-off spikes that
+// dominate the vertical scale and drown out the meaningful day-to-day flow. To
+// keep the derivative smooth we winsorize the deltas: values outside the
+// interquartile whiskers (Tukey's 1.5*IQR fences) are clamped to those bounds
+// so a single anomaly no longer squashes the rest of the chart.
+const DerivativeChart = ({ data, numberOfLayers = 1, segments }: DerivativeChartProps) => {
 	const [hovered, setHovered] = useState<number | null>(null);
 	const chartWidth = 1200;
 	const chartHeight = 600;
@@ -37,10 +40,13 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 	const paddingX = 50;
 	const paddingY = 90;
 
+	const pointsData = segments ? segments.flat() : data ?? [];
+	const layerCount = segments ? segments.length : numberOfLayers;
+
 	// Raw derivative: difference between each point and the previous one.
 	// First point has no predecessor, so its rate of change is 0.
-	const rawDeltas = data.map((point, index) =>
-		index === 0 ? 0 : point.numberOfLots - data[index - 1].numberOfLots
+	const rawDeltas = pointsData.map((point, index) =>
+		index === 0 ? 0 : point.numberOfLots - pointsData[index - 1].numberOfLots
 	);
 
 	// Robust bounds via the interquartile range (ignores the first zero-pad point).
@@ -59,7 +65,7 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 	const isOutlier = (value: number) =>
 		value < lowerFence || value > upperFence;
 
-	const derivative = data.map((point, index) => {
+	const derivative = pointsData.map((point, index) => {
 		const raw = rawDeltas[index];
 		const smoothed = isOutlier(raw);
 		return {
@@ -76,20 +82,37 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 	const range = maxY - minY || 1;
 
 	const guides = Array.from({ length: 16 }, (_, i) => i);
-	const layers = Array.from({ length: numberOfLayers }, (_, i) => i);
+	const layers = Array.from({ length: layerCount }, (_, i) => i);
 
 	const toY = (delta: number) =>
 		chartHeight -
 		((delta - minY) / range) * (chartHeight - (paddingY + offsetY)) -
 		paddingY;
 
+	function computeX(index: number): number {
+		if (!segments) {
+			return (
+				((index % (pointsData.length / numberOfLayers)) /
+					(pointsData.length / numberOfLayers)) *
+					(chartWidth - paddingX) +
+				paddingX / 2
+			);
+		}
+	const POINTS_PER_DAY = 288;
+		let cursor = 0;
+		for (let s = 0; s < segments.length; s++) {
+			if (index < cursor + segments[s].length) {
+				const posInSeg = index - cursor;
+				return (posInSeg / POINTS_PER_DAY) * (chartWidth - paddingX) + paddingX / 2;
+			}
+			cursor += segments[s].length;
+		}
+		return paddingX / 2;
+	}
+
 	const properties = derivative.map((property, index) => {
 		const { delta, date, rawDelta, clamped } = property;
-		const x =
-			((index % (derivative.length / numberOfLayers)) /
-				(derivative.length / numberOfLayers)) *
-				(chartWidth - paddingX) +
-			paddingX / 2;
+		const x = computeX(index);
 		return {
 			delta,
 			rawDelta,
@@ -100,7 +123,29 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 		};
 	});
 
-	const points = properties.map((point) => `${point.x},${point.y}`);
+	const polylines = (() => {
+		const flatPoints = properties.map((p) => `${p.x},${p.y}`);
+		if (!segments) {
+			return layers.map((layer) => ({
+				points: flatPoints
+					.slice(
+						(layer * flatPoints.length) / numberOfLayers,
+						((layer + 1) * flatPoints.length) / numberOfLayers
+					)
+					.join(" "),
+				index: layer,
+			}));
+		}
+		let cursor = 0;
+		return segments.map((seg, layer) => {
+			const segPoints = properties.slice(cursor, cursor + seg.length);
+			cursor += seg.length;
+			return {
+				points: segPoints.map((p) => `${p.x},${p.y}`).join(" "),
+				index: layer,
+			};
+		});
+	})();
 
 	const zeroY = toY(0);
 
@@ -131,21 +176,42 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 			/>
 
 			{/* Derivative line(s), folded into layers */}
-			{layers.map((layer) => (
+			{polylines.map(({ points, index: layer }) => (
 				<polyline
 					fill="none"
 					className="stroke-zinc-600"
-					style={{ opacity: `0.${100 - (layers.length - layer) * 10 + 9}` }}
+					style={{ opacity: `0.${100 - (layerCount - layer) * 10 + 9}` }}
 					strokeWidth={2}
 					key={`layer-${layer}`}
-					points={points
-						.slice(
-							(layer * points.length) / numberOfLayers,
-							((layer + 1) * points.length) / numberOfLayers
-						)
-						.join(" ")}
+					points={points}
 				/>
 			))}
+
+			{/* Live market state point */}
+			{segments && properties.length > 0 && (() => {
+				const last = properties[properties.length - 1];
+				return (
+					<>
+						<circle className="fill-zinc-600" cx={last.x} cy={last.y} r={4} />
+						<circle className="fill-zinc-600" cx={last.x} cy={last.y} r={4}>
+							<animate
+								attributeName="r"
+								values="4;4;8;4"
+								keyTimes="0;0.834;0.917;1"
+								dur="6s"
+								repeatCount="indefinite"
+							/>
+							<animate
+								attributeName="opacity"
+								values="0.8;0.8;0;0.8"
+								keyTimes="0;0.834;0.917;1"
+								dur="6s"
+								repeatCount="indefinite"
+							/>
+						</circle>
+					</>
+				);
+			})()}
 
 			{/* Single transparent overlay — nearest-point hover, no per-point DOM */}
 			<rect
@@ -204,7 +270,7 @@ const DerivativeChart = ({ data, numberOfLayers = 1 }: DerivativeChartProps) => 
 								className="font-bold fill-zinc-100 select-none"
 							>
 								{clamped
-									? `${rawDelta > 0 ? "+" : ""}${rawDelta} (smoothed)`
+									? `${rawDelta > 0 ? "+" : ""}${rawDelta}`
 									: delta > 0
 									? `+${delta}`
 									: delta}

@@ -6,7 +6,7 @@ import getMarketStats from "../actions/getMarketStats";
 import LineChart from "../components/chart";
 import DerivativeChart from "../components/derivativeChart";
 import StatCard from "../components/statCard";
-import { alignToDrop } from "@/lib/align";
+import { interpolateWeek, splitIntoSegments } from "@/lib/interpolate";
 
 type LotPoint = { date: string; numberOfLots: number };
 
@@ -90,6 +90,7 @@ type LotData = { date: string; numberOfLots: number }[];
 type DataBundle = {
 	day: LotData;
 	week: LotData;
+	weekSegments: LotData[];
 	callsDay: LotData;
 };
 
@@ -110,7 +111,7 @@ const GRAPH_REGISTRY: Record<string, GraphDefinition> = {
 	"1gb-week-folded": {
 		id: "1gb-week-folded",
 		title: "1 GB lots over the week (folded by day)",
-		render: (data) => <LineChart data={data.week} numberOfLayers={7} />,
+		render: (data) => <LineChart segments={data.weekSegments} />,
 	},
 	"1gb-derivative-24h": {
 		id: "1gb-derivative-24h",
@@ -120,7 +121,7 @@ const GRAPH_REGISTRY: Record<string, GraphDefinition> = {
 	"1gb-derivative-week-folded": {
 		id: "1gb-derivative-week-folded",
 		title: "Rate of change of 1 GB lots over the week (folded by day)",
-		render: (data) => <DerivativeChart data={data.week} numberOfLayers={7} />,
+		render: (data) => <DerivativeChart segments={data.weekSegments} />,
 	},
 	"calls-50-24h": {
 		id: "calls-50-24h",
@@ -168,14 +169,16 @@ const TABS: TabConfig[] = [
 
 export default async function Dashboard() {
 	// 288 points = 24h, 2016 = week
-	const [day, week, stats, callsDay, callsStats] = await Promise.all([
+	const [day, weekData, stats, callsDay, callsStats] = await Promise.all([
 		getData(288),
-		getData(2016),
+		getData(2500),
 		getMarketStats(),
 		getCallsData(288, 0, 50),
 		getCallsStats(),
 	]);
-	const data: DataBundle = { day, week: alignToDrop(week), callsDay };
+	const week = interpolateWeek(weekData);
+	const weekSegments = splitIntoSegments(week);
+	const data: DataBundle = { day, week, weekSegments, callsDay };
 
 	// Map each tab to the series key used in the DataBundle.
 	const tabSeries: Record<string, LotPoint[]> = {

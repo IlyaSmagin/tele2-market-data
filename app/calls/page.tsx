@@ -1,7 +1,7 @@
 import getCallsData from "../actions/getCallsData";
 import getLatestCallsDistribution from "../actions/getLatestCallsDistribution";
 import { parseRangeParams } from "@/lib/range";
-import { alignToDrop } from "@/lib/align";
+import { interpolateWeek, splitIntoSegments } from "@/lib/interpolate";
 import LineChart from "../components/chart";
 import CandlestickChart from "../components/candlestickChart";
 import BarChart from "../components/barChart";
@@ -17,8 +17,10 @@ export default async function CallsPage({
 }: {
 	searchParams: SearchParams;
 }) {
-	const dataPoints = await getCallsData(2016, 0);
-	const filteredDataPoints = await getCallsData(2016, 100000);
+	const dataPoints = interpolateWeek(await getCallsData(2500, 0));
+	const filteredDataPoints = interpolateWeek(await getCallsData(2500, 100000));
+	const dataSegments = splitIntoSegments(dataPoints);
+	const filteredSegments = splitIntoSegments(filteredDataPoints);
 	const selection = parseRangeParams(searchParams, 50, 2500);
 	const volumeDistributionData = await getLatestCallsDistribution(selection);
 	const fullVolumeDistribution = await getLatestCallsDistribution();
@@ -35,11 +37,11 @@ export default async function CallsPage({
 			<h1 className="text-2xl">Weekly graph (filtered)</h1>
 			<LineChart data={filteredDataPoints} />
 			<h1 className="text-2xl">Weekly graph (folded)</h1>
-			<LineChart data={alignToDrop(filteredDataPoints)} numberOfLayers={7} />
+			<LineChart segments={filteredSegments} />
 			<h1 className="text-2xl">Rate of change of 1 min lots (weekly)</h1>
 			<DerivativeChart data={dataPoints} />
 			<h1 className="text-2xl">Rate of change of 1 min lots (folded by day)</h1>
-			<DerivativeChart data={alignToDrop(dataPoints)} numberOfLayers={7} />
+			<DerivativeChart segments={dataSegments} />
 		</>
 	);
 }

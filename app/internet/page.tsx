@@ -1,7 +1,7 @@
 import getData from "../actions/getData";
 import getLatestVolumeDistribution from "../actions/getLatestVolumeDistribution";
 import { parseRangeParams } from "@/lib/range";
-import { alignToDrop } from "@/lib/align";
+import { interpolateWeek, splitIntoSegments } from "@/lib/interpolate";
 import LineChart from "../components/chart";
 import CandlestickChart from "../components/candlestickChart";
 import BarChart from "../components/barChart";
@@ -17,8 +17,10 @@ export default async function Week({
 }: {
 	searchParams: SearchParams;
 }) {
-	const dataPoints = await getData(2016, 0);
-	const filteredDataPoints = await getData(2016, 100000);
+	const dataPoints = interpolateWeek(await getData(2500, 0));
+	const filteredDataPoints = interpolateWeek(await getData(2500, 100000));
+	const dataSegments = splitIntoSegments(dataPoints);
+	const filteredSegments = splitIntoSegments(filteredDataPoints);
 	const selection = parseRangeParams(searchParams);
 	const volumeDistributionData = await getLatestVolumeDistribution(selection);
 	// Bar chart is independent of the range picker — always show the full set.
@@ -36,11 +38,11 @@ export default async function Week({
 			<h1 className="text-2xl">Weekly graph (filtered)</h1>
 			<LineChart data={filteredDataPoints} />
 			<h1 className="text-2xl">Weekly graph (folded)</h1>
-			<LineChart data={alignToDrop(filteredDataPoints)} numberOfLayers={7} />
+			<LineChart segments={filteredSegments} />
 			<h1 className="text-2xl">Rate of change of 1 GB lots (weekly)</h1>
 			<DerivativeChart data={dataPoints} />
 			<h1 className="text-2xl">Rate of change of 1 GB lots (folded by day)</h1>
-			<DerivativeChart data={alignToDrop(dataPoints)} numberOfLayers={7} />
+			<DerivativeChart segments={dataSegments} />
     </>
 	);
 }
