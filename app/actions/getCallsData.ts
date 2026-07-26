@@ -54,7 +54,7 @@ async function getCallsData(data_length: number, treshhold = 100000, volume?: nu
 	const { data, error } = await supabase
 		.from("MarketData")
 		.select("created_at, calls!inner(count)")
-		.eq("calls.volume", 1)
+		.eq("calls.volume", 50)
 		.gt("calls.count", `${treshhold}`)
 		.order("id", { ascending: false })
 		.limit(data_length);

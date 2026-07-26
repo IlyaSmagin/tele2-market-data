@@ -16,6 +16,8 @@ type RangePickerProps = {
 	selection: RangeSelection;
 	className?: string;
 	unitLabel?: string;
+	volumeMin?: number;
+	volumeMax?: number;
 };
 
 const MODE_LABELS: { mode: RangeMode; label: string }[] = [
@@ -24,16 +26,16 @@ const MODE_LABELS: { mode: RangeMode; label: string }[] = [
 	{ mode: "custom", label: "Custom range" },
 ];
 
-const RangePicker = ({ selection, className, unitLabel = "GB" }: RangePickerProps) => {
+const RangePicker = ({ selection, className, unitLabel = "GB", volumeMin = VOLUME_MIN, volumeMax = VOLUME_MAX }: RangePickerProps) => {
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 
 	const [min, setMin] = useState(
-		selection.mode === "custom" ? selection.min : VOLUME_MIN
+		selection.mode === "custom" ? selection.min : volumeMin
 	);
 	const [max, setMax] = useState(
-		selection.mode === "custom" ? selection.max : VOLUME_MAX
+		selection.mode === "custom" ? selection.max : volumeMax
 	);
 
 	// Keep local inputs in sync when the URL changes externally.
@@ -42,7 +44,7 @@ const RangePicker = ({ selection, className, unitLabel = "GB" }: RangePickerProp
 			mode: searchParams.get("mode") ?? undefined,
 			min: searchParams.get("min") ?? undefined,
 			max: searchParams.get("max") ?? undefined,
-		});
+		}, volumeMin, volumeMax);
 		if (parsed.mode === "custom") {
 			setMin(parsed.min);
 			setMax(parsed.max);
@@ -94,8 +96,8 @@ const RangePicker = ({ selection, className, unitLabel = "GB" }: RangePickerProp
 				<div className="flex items-center gap-1 pl-1 text-sm text-zinc-500 dark:text-zinc-400">
 					<input
 						type="number"
-						min={VOLUME_MIN}
-						max={VOLUME_MAX}
+						min={volumeMin}
+						max={volumeMax}
 						value={min}
 						onChange={(e) => setMin(Number(e.target.value))}
 						className="h-8 w-16 rounded-md border border-zinc-300 bg-transparent px-2 text-right dark:border-zinc-700"
@@ -104,8 +106,8 @@ const RangePicker = ({ selection, className, unitLabel = "GB" }: RangePickerProp
 					<span>–</span>
 					<input
 						type="number"
-						min={VOLUME_MIN}
-						max={VOLUME_MAX}
+						min={volumeMin}
+						max={volumeMax}
 						value={max}
 						onChange={(e) => setMax(Number(e.target.value))}
 						className="h-8 w-16 rounded-md border border-zinc-300 bg-transparent px-2 text-right dark:border-zinc-700"

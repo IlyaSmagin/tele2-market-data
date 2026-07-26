@@ -34,7 +34,11 @@ function toInt(value: string | undefined): number | null {
 	return n;
 }
 
-export function parseRangeParams(params: RawParams): RangeSelection {
+export function parseRangeParams(
+	params: RawParams,
+	volumeMin = VOLUME_MIN,
+	volumeMax = VOLUME_MAX
+): RangeSelection {
 	const mode = first(params.mode);
 	const minRaw = toInt(first(params.min));
 	const maxRaw = toInt(first(params.max));
@@ -43,16 +47,16 @@ export function parseRangeParams(params: RawParams): RangeSelection {
 	if (mode === "least") return { mode: "least" };
 
 	if (mode === "custom") {
-		let min = minRaw ?? VOLUME_MIN;
-		let max = maxRaw ?? VOLUME_MAX;
-		min = Math.min(Math.max(min, VOLUME_MIN), VOLUME_MAX);
-		max = Math.min(Math.max(max, VOLUME_MIN), VOLUME_MAX);
+		let min = minRaw ?? volumeMin;
+		let max = maxRaw ?? volumeMax;
+		min = Math.min(Math.max(min, volumeMin), volumeMax);
+		max = Math.min(Math.max(max, volumeMin), volumeMax);
 		if (min > max) [min, max] = [max, min];
 		return { mode: "custom", min, max };
 	}
 
 	// No/invalid mode -> full range (custom covering everything).
-	return { mode: "custom", min: VOLUME_MIN, max: VOLUME_MAX };
+	return { mode: "custom", min: volumeMin, max: volumeMax };
 }
 
 export function selectionToParams(selection: RangeSelection): string {

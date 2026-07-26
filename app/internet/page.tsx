@@ -1,6 +1,7 @@
 import getData from "../actions/getData";
 import getLatestVolumeDistribution from "../actions/getLatestVolumeDistribution";
 import { parseRangeParams } from "@/lib/range";
+import { alignToDrop } from "@/lib/align";
 import LineChart from "../components/chart";
 import CandlestickChart from "../components/candlestickChart";
 import BarChart from "../components/barChart";
@@ -31,15 +32,15 @@ export default async function Week({
 			<RangePicker selection={selection} />
 			<CandlestickChart data={volumeDistributionData} />
 			<h1 className="text-2xl">Volume distribution (lots per GB tier)</h1>
-			<BarChart data={fullVolumeDistribution.map((d) => d.count)} />
+			<BarChart data={fullVolumeDistribution.map((d) => d.count)} volumeLabels={fullVolumeDistribution.map((d) => d.volume)} />
 			<h1 className="text-2xl">Weekly graph (filtered)</h1>
 			<LineChart data={filteredDataPoints} />
 			<h1 className="text-2xl">Weekly graph (folded)</h1>
-			<LineChart data={filteredDataPoints} numberOfLayers={7} />
+			<LineChart data={alignToDrop(filteredDataPoints)} numberOfLayers={7} />
 			<h1 className="text-2xl">Rate of change of 1 GB lots (weekly)</h1>
 			<DerivativeChart data={dataPoints} />
 			<h1 className="text-2xl">Rate of change of 1 GB lots (folded by day)</h1>
-			<DerivativeChart data={dataPoints} numberOfLayers={7} />
+			<DerivativeChart data={alignToDrop(dataPoints)} numberOfLayers={7} />
     </>
 	);
 }

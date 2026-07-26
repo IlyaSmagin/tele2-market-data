@@ -6,6 +6,7 @@ import getMarketStats from "../actions/getMarketStats";
 import LineChart from "../components/chart";
 import DerivativeChart from "../components/derivativeChart";
 import StatCard from "../components/statCard";
+import { alignToDrop } from "@/lib/align";
 
 type LotPoint = { date: string; numberOfLots: number };
 
@@ -174,7 +175,7 @@ export default async function Dashboard() {
 		getCallsData(288, 0, 50),
 		getCallsStats(),
 	]);
-	const data: DataBundle = { day, week, callsDay };
+	const data: DataBundle = { day, week: alignToDrop(week), callsDay };
 
 	// Map each tab to the series key used in the DataBundle.
 	const tabSeries: Record<string, LotPoint[]> = {
