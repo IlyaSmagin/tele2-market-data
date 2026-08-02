@@ -9,6 +9,37 @@ const FETCH_HEADERS = {
 	"X-API-Version": "1",
 };
 
+// Snapshots to retain: 15 days at the 5-minute cadence. Each snapshot is
+// 1 MarketData row plus ~845 volume_tiers and ~845 calls rows.
+const MAX_SNAPSHOTS = 15 * 24 * 12; // 4320
+
+async function pruneOldSnapshots(supabase: any, maxSnapshots: number) {
+	const { count } = await supabase
+		.from("MarketData")
+		.select("id", { count: "exact", head: true });
+
+	if (count == null || count <= maxSnapshots) return;
+
+	const excess = count - maxSnapshots;
+	const { data: oldestIds } = await supabase
+		.from("MarketData")
+		.select("id")
+		.order("id", { ascending: true })
+		.limit(excess);
+
+	if (!oldestIds || oldestIds.length === 0) return;
+
+	// Linked volume_tiers and calls rows are removed automatically via
+	// ON DELETE CASCADE.
+	const ids = oldestIds.map((row: any) => row.id);
+	for (let i = 0; i < ids.length; i += 1000) {
+		const chunk = ids.slice(i, i + 1000);
+		const { error } = await supabase.from("MarketData").delete().in("id", chunk);
+		if (error) console.error("MarketData prune error:", error);
+	}
+	console.log(`Pruned ${ids.length} old snapshot(s)`);
+}
+
 async function fetchTrafficData(trafficType: string) {
 	try {
 		const res = await fetch(
@@ -47,8 +78,6 @@ async function insertSnapshot(
 		market_data_id: marketDataId,
 		volume: tier.volume,
 		min_cost: tier.minCost,
-		avg_cost: tier.avgCost,
-		max_cost: tier.maxCost,
 		count: tier.count,
 	}));
 	const { error } = await supabase.from(tableName).insert(rows);
@@ -61,14 +90,15 @@ async function saveMarketData() {
 		process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 	);
 
-	const [internetResult, callsResult] = await Promise.all([
+	const [internetResult, callsResult, smsResult] = await Promise.all([
 		fetchTrafficData("data"),
 		fetchTrafficData("voice"),
+		fetchTrafficData("sms"),
 	]);
 
-	const meta = internetResult?.meta ?? callsResult?.meta ?? {
+	const meta = internetResult?.meta ?? callsResult?.meta ?? smsResult?.meta ?? {
 		status: "error",
-		message: "both internet and calls fetches failed",
+		message: "internet, calls and sms fetches failed",
 	};
 
 	const { data: inserted, error: dbError } = await supabase
@@ -90,7 +120,12 @@ async function saveMarketData() {
 		callsResult
 			? insertSnapshot(supabase, callsResult.data, marketDataId, "calls")
 			: Promise.resolve(),
+		smsResult
+			? insertSnapshot(supabase, smsResult.data, marketDataId, "sms")
+			: Promise.resolve(),
 	]);
+
+	await pruneOldSnapshots(supabase, MAX_SNAPSHOTS);
 
 	console.log("Server action: saveMarketData, status: OK");
 	return { status: meta.status, message: meta.message };

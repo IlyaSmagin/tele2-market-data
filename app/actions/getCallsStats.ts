@@ -4,7 +4,6 @@ export type CallsStats = {
 	totalLotsNow: number;
 	totalLots1d: number;
 	totalLots7d: number;
-	totalLots30d: number;
 };
 
 async function getCallsStats(): Promise<CallsStats> {
@@ -14,7 +13,7 @@ async function getCallsStats(): Promise<CallsStats> {
 	);
 
 	const now = Date.now();
-	const offsets = [0, 1, 7, 30];
+	const offsets = [0, 1, 7];
 
 	const totals = await Promise.all(
 		offsets.map(async (days) => {
@@ -43,8 +42,8 @@ async function getCallsStats(): Promise<CallsStats> {
 		})
 	);
 
-	const [totalLotsNow, totalLots1d, totalLots7d, totalLots30d] = totals;
-	return { totalLotsNow, totalLots1d, totalLots7d, totalLots30d };
+	const [totalLotsNow, totalLots1d, totalLots7d] = totals;
+	return { totalLotsNow, totalLots1d, totalLots7d };
 }
 
 async function sumTiers(

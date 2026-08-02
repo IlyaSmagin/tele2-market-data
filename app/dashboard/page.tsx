@@ -145,7 +145,7 @@ type TabConfig = {
 	graphs: string[];
 	baselineDays: number;
 	caption: string;
-	baselineKey: "totalLots1d" | "totalLots7d" | "totalLots30d";
+	baselineKey: "totalLots1d" | "totalLots7d";
 };
 
 const TABS: TabConfig[] = [

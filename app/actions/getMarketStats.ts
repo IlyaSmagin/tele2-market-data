@@ -4,7 +4,6 @@ export type MarketStats = {
 	totalLotsNow: number;
 	totalLots1d: number;
 	totalLots7d: number;
-	totalLots30d: number;
 };
 
 async function getMarketStats(): Promise<MarketStats> {
@@ -14,7 +13,7 @@ async function getMarketStats(): Promise<MarketStats> {
 	);
 
 	const now = Date.now();
-	const offsets = [0, 1, 7, 30];
+	const offsets = [0, 1, 7];
 
 	// For each offset (days ago), find the snapshot closest to that moment and
 	// sum its tier counts. 0 = current/latest snapshot.
@@ -45,8 +44,8 @@ async function getMarketStats(): Promise<MarketStats> {
 		})
 	);
 
-	const [totalLotsNow, totalLots1d, totalLots7d, totalLots30d] = totals;
-	return { totalLotsNow, totalLots1d, totalLots7d, totalLots30d };
+	const [totalLotsNow, totalLots1d, totalLots7d] = totals;
+	return { totalLotsNow, totalLots1d, totalLots7d };
 }
 
 async function sumTiers(
