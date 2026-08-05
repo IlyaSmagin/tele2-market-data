@@ -26,22 +26,28 @@ export default async function CallsPage({
 	const fullVolumeDistribution = await getLatestCallsDistribution();
 
 	return (
-		<>
-			<h1 className="text-2xl">Weekly graph (messy)</h1>
-			<LineChart data={dataPoints} />
-			<h1 className="text-2xl">Lots distribution by volume range</h1>
-			<RangePicker selection={selection} unitLabel="min" volumeMin={50} volumeMax={2500} />
-			<CandlestickChart data={volumeDistributionData} unitLabel="min" />
-			<h1 className="text-2xl">Volume distribution (lots per min tier)</h1>
-			<BarChart data={fullVolumeDistribution.map((d) => d.count)} unitLabel="min" volumeLabels={fullVolumeDistribution.map((d) => d.volume)} />
-			<h1 className="text-2xl">Weekly graph (filtered)</h1>
-			<LineChart data={filteredDataPoints} />
-			<h1 className="text-2xl">Weekly graph (folded)</h1>
-			<LineChart segments={filteredSegments} />
-			<h1 className="text-2xl">Rate of change of 1 min lots (weekly)</h1>
-			<DerivativeChart data={dataPoints} />
-			<h1 className="text-2xl">Rate of change of 1 min lots (folded by day)</h1>
-			<DerivativeChart segments={dataSegments} />
-		</>
+		<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+			<section>
+				<h1 className="text-2xl mb-2">Lots distribution by volume range</h1>
+				<RangePicker selection={selection} unitLabel="min" volumeMin={50} volumeMax={2500} />
+				<CandlestickChart data={volumeDistributionData} unitLabel="min" />
+			</section>
+			<section>
+				<h1 className="text-2xl mb-2">Volume distribution (lots per min tier)</h1>
+				<BarChart data={fullVolumeDistribution.map((d) => d.count)} unitLabel="min" volumeLabels={fullVolumeDistribution.map((d) => d.volume)} />
+			</section>
+			<section>
+				<h1 className="text-2xl mb-2">Weekly graph (filtered)</h1>
+				<LineChart data={filteredDataPoints} />
+			</section>
+			<section>
+				<h1 className="text-2xl mb-2">Weekly graph (folded)</h1>
+				<LineChart segments={filteredSegments} />
+			</section>
+			<section>
+				<h1 className="text-2xl mb-2">Rate of change of 1 min lots (folded by day)</h1>
+				<DerivativeChart segments={dataSegments} />
+			</section>
+		</div>
 	);
 }

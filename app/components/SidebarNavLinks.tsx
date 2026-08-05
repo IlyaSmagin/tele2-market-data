@@ -18,7 +18,7 @@ const navLinks: NavLink[] = [
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
   { href: '/internet', label: 'Internet', icon: '🌐' },
   { href: '/calls', label: 'Calls', icon: '☎️' },
-  { href: '#', label: 'Messages', icon: '💬', disabled: true },
+  { href: '/sms', label: 'SMS', icon: '💬' },
   { href: '#', label: 'Settings', icon: '⚙️', disabled: true },
 ];
 

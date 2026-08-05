@@ -2,6 +2,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import getData from "../actions/getData";
 import getCallsData from "../actions/getCallsData";
 import getCallsStats from "../actions/getCallsStats";
+import getSmsData from "../actions/getSmsData";
+import getSmsStats from "../actions/getSmsStats";
 import getMarketStats from "../actions/getMarketStats";
 import LineChart from "../components/chart";
 import DerivativeChart from "../components/derivativeChart";
@@ -18,7 +20,7 @@ function pctDelta(now: number, before: number): number {
 	return ((now - before) / before) * 100;
 }
 
-// Builds the analytics cards (internet lots + calls lots) for a time window.
+// Builds the analytics cards (internet + calls + sms lots) for a time window.
 // `baselineDays` is how far back the "comparison" point sits (1 = yesterday,
 // 7 = same time last week, 30 = same time last month).
 function MarketCards({
@@ -30,6 +32,9 @@ function MarketCards({
 	callsSeries,
 	callsTotalNow,
 	callsTotalBaseline,
+	smsSeries,
+	smsTotalNow,
+	smsTotalBaseline,
 }: {
 	series: LotPoint[];
 	totalLotsNow: number;
@@ -39,6 +44,9 @@ function MarketCards({
 	callsSeries: LotPoint[];
 	callsTotalNow: number;
 	callsTotalBaseline: number;
+	smsSeries: LotPoint[];
+	smsTotalNow: number;
+	smsTotalBaseline: number;
 }) {
 	const oneGbNow = series.length ? series[series.length - 1].numberOfLots : 0;
 	const oneGbBefore = series.length
@@ -49,6 +57,12 @@ function MarketCards({
 	const fiftyMinNow = callsSeries.length ? callsSeries[callsSeries.length - 1].numberOfLots : 0;
 	const fiftyMinBefore = callsSeries.length
 		? callsSeries[Math.max(0, callsSeries.length - 1 - baselineDays * POINTS_PER_DAY)]
+				.numberOfLots
+		: 0;
+
+	const fiftySmsNow = smsSeries.length ? smsSeries[smsSeries.length - 1].numberOfLots : 0;
+	const fiftySmsBefore = smsSeries.length
+		? smsSeries[Math.max(0, smsSeries.length - 1 - baselineDays * POINTS_PER_DAY)]
 				.numberOfLots
 		: 0;
 
@@ -78,6 +92,18 @@ function MarketCards({
 				deltaPct={pctDelta(fiftyMinNow, fiftyMinBefore)}
 				deltaCaption={caption}
 			/>
+			<StatCard
+				label="Total SMS lots on market"
+				value={smsTotalNow}
+				deltaPct={pctDelta(smsTotalNow, smsTotalBaseline)}
+				deltaCaption={caption}
+			/>
+			<StatCard
+				label="50 SMS lots"
+				value={fiftySmsNow}
+				deltaPct={pctDelta(fiftySmsNow, fiftySmsBefore)}
+				deltaCaption={caption}
+			/>
 		</div>
 	);
 }
@@ -92,6 +118,7 @@ type DataBundle = {
 	week: LotData;
 	weekSegments: LotData[];
 	callsDay: LotData;
+	smsDay: LotData;
 };
 
 // Registry of every available graph. To add a new graph, add an entry here
@@ -133,6 +160,16 @@ const GRAPH_REGISTRY: Record<string, GraphDefinition> = {
 		title: "Rate of change of 50 min lots (last 24 hours)",
 		render: (data) => <DerivativeChart data={data.callsDay} />,
 	},
+	"sms-50-24h": {
+		id: "sms-50-24h",
+		title: "Number of 50 SMS lots in the last 24 hours",
+		render: (data) => <LineChart data={data.smsDay} />,
+	},
+	"sms-50-derivative-24h": {
+		id: "sms-50-derivative-24h",
+		title: "Rate of change of 50 SMS lots (last 24 hours)",
+		render: (data) => <DerivativeChart data={data.smsDay} />,
+	},
 };
 
 // Tab configuration. Each tab lists graph ids in display order — reorder the
@@ -152,7 +189,7 @@ const TABS: TabConfig[] = [
 	{
 		value: "24h",
 		label: "24h",
-		graphs: ["1gb-24h", "1gb-derivative-24h", "calls-50-24h", "calls-50-derivative-24h"],
+		graphs: ["1gb-24h", "1gb-derivative-24h", "calls-50-24h", "calls-50-derivative-24h", "sms-50-24h", "sms-50-derivative-24h"],
 		baselineDays: 1,
 		caption: "vs yesterday",
 		baselineKey: "totalLots1d",
@@ -169,16 +206,19 @@ const TABS: TabConfig[] = [
 
 export default async function Dashboard() {
 	// 288 points = 24h, 2016 = week
-	const [day, weekData, stats, callsDay, callsStats] = await Promise.all([
-		getData(288),
-		getData(2500),
-		getMarketStats(),
-		getCallsData(288, 0, 50),
-		getCallsStats(),
-	]);
+	const [day, weekData, stats, callsDay, callsStats, smsDay, smsStats] =
+		await Promise.all([
+			getData(288),
+			getData(2500),
+			getMarketStats(),
+			getCallsData(288, 0, 50),
+			getCallsStats(),
+			getSmsData(288, 0, 50),
+			getSmsStats(),
+		]);
 	const week = interpolateWeek(weekData);
 	const weekSegments = splitIntoSegments(week);
-	const data: DataBundle = { day, week, weekSegments, callsDay };
+	const data: DataBundle = { day, week, weekSegments, callsDay, smsDay };
 
 	// Map each tab to the series key used in the DataBundle.
 	const tabSeries: Record<string, LotPoint[]> = {
@@ -207,6 +247,9 @@ export default async function Dashboard() {
 						callsSeries={callsDay}
 						callsTotalNow={callsStats.totalLotsNow}
 						callsTotalBaseline={callsStats[tab.baselineKey]}
+						smsSeries={smsDay}
+						smsTotalNow={smsStats.totalLotsNow}
+						smsTotalBaseline={smsStats[tab.baselineKey]}
 					/>
 					<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 						{tab.graphs.map((graphId) => {
