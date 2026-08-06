@@ -18,7 +18,7 @@ export default async function SmsPage({
 	searchParams: SearchParams;
 }) {
 	const dataPoints = interpolateWeek(await getSmsData(2500, 0));
-	const filteredDataPoints = interpolateWeek(await getSmsData(2500, 100000));
+	const filteredDataPoints = interpolateWeek(await getSmsData(2500, 0));
 	const dataSegments = splitIntoSegments(dataPoints);
 	const filteredSegments = splitIntoSegments(filteredDataPoints);
 	const selection = parseRangeParams(searchParams, 50, 500);
