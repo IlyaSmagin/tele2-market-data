@@ -18,6 +18,9 @@ const config = {
       },
     },
     extend: {
+      screens: {
+        "3xl": "112rem",
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },

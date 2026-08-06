@@ -67,9 +67,9 @@ function MarketCards({
 		: 0;
 
 	return (
-		<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+		<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4 3xl:grid-cols-6">
 			<StatCard
-				label="Total internet lots on market"
+				label="Total internet lots"
 				value={totalLotsNow}
 				deltaPct={pctDelta(totalLotsNow, totalLotsBaseline)}
 				deltaCaption={caption}
@@ -81,7 +81,7 @@ function MarketCards({
 				deltaCaption={caption}
 			/>
 			<StatCard
-				label="Total call lots on market"
+				label="Total call lots"
 				value={callsTotalNow}
 				deltaPct={pctDelta(callsTotalNow, callsTotalBaseline)}
 				deltaCaption={caption}
@@ -93,7 +93,7 @@ function MarketCards({
 				deltaCaption={caption}
 			/>
 			<StatCard
-				label="Total SMS lots on market"
+				label="Total SMS lots"
 				value={smsTotalNow}
 				deltaPct={pctDelta(smsTotalNow, smsTotalBaseline)}
 				deltaCaption={caption}
