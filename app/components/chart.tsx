@@ -186,7 +186,12 @@ const LineChart = ({ data, numberOfLayers = 1, segments }: ChartProps) => {
 			/>
 
 			{/* Single shared tooltip */}
-			{active && (
+			{active && (() => {
+				const labelX = Math.min(
+					Math.max(active.x, chartWidth * 0.05),
+					chartWidth * 0.95
+				);
+				return (
 				<g className="pointer-events-none">
 					<circle
 						className="stroke-zinc-500 fill-black"
@@ -204,25 +209,21 @@ const LineChart = ({ data, numberOfLayers = 1, segments }: ChartProps) => {
 					>
 						{active.total}
 					</text>
-					<g
-						transform={`translate(${active.x} ${
-							chartHeight - (paddingY - offsetY)
-						})`}
+					<text
+						x={labelX}
+						y={chartHeight - (paddingY - offsetY) + 18}
+						textAnchor="middle"
+						fontSize={18}
+						className="fill-zinc-600 select-none"
 					>
-						<text
-							transform="rotate(45)"
-							textAnchor="start"
-							fontSize={10}
-							className="fill-zinc-600 select-none"
-						>
-							{new Date(active.date).toLocaleTimeString([], {
-								hour: "2-digit",
-								minute: "2-digit",
-							})}
-						</text>
-					</g>
+						{new Date(active.date).toLocaleTimeString([], {
+							hour: "2-digit",
+							minute: "2-digit",
+						})}
+					</text>
 				</g>
-			)}
+				);
+			})()}
 		</svg>
 	);
 };

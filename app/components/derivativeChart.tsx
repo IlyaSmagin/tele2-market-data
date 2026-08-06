@@ -34,6 +34,7 @@ const percentile = (sorted: number[], p: number) => {
 // so a single anomaly no longer squashes the rest of the chart.
 const DerivativeChart = ({ data, numberOfLayers = 1, segments }: DerivativeChartProps) => {
 	const [hovered, setHovered] = useState<number | null>(null);
+
 	const chartWidth = 1200;
 	const chartHeight = 600;
 	const offsetY = 40;
@@ -276,15 +277,11 @@ const DerivativeChart = ({ data, numberOfLayers = 1, segments }: DerivativeChart
 									: delta}
 							</text>
 
-							<g
-								transform={`translate(${x} ${
-									chartHeight - (paddingY - offsetY)
-								})`}
-							>
-								<text
-									transform="rotate(45)"
-									textAnchor="start"
-									fontSize={10}
+<text
+									x={Math.min(Math.max(x, chartWidth * 0.05), chartWidth * 0.95)}
+									y={chartHeight - (paddingY - offsetY) + 18}
+									textAnchor="middle"
+									fontSize={18}
 									className="fill-zinc-600 select-none"
 								>
 									{new Date(date).toLocaleTimeString([], {
@@ -292,7 +289,6 @@ const DerivativeChart = ({ data, numberOfLayers = 1, segments }: DerivativeChart
 										minute: "2-digit",
 									})}
 								</text>
-							</g>
 						</g>
 					);
 				})()}
