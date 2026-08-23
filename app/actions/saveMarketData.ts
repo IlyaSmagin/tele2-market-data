@@ -77,7 +77,6 @@ async function insertSnapshot(
 	const rows = apiData.map((tier: any) => ({
 		market_data_id: marketDataId,
 		volume: tier.volume,
-		min_cost: tier.minCost,
 		count: tier.count,
 	}));
 	const { error } = await supabase.from(tableName).insert(rows);

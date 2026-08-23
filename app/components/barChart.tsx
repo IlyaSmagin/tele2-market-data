@@ -50,6 +50,21 @@ const BarChart = ({ data, unitLabel = "GB", volumeLabels }: BarChartProps) => {
 
 	const baselineY = chartHeight - paddingY;
 
+	// Four evenly spaced default x-axis labels.
+	const defaultIndices = Array.from({ length: 4 }, (_, i) =>
+		Math.round((i * (barCount - 1)) / 3)
+	);
+	const closestDefault =
+		hovered === null
+			? null
+			: defaultIndices.reduce((best, b) =>
+					Math.abs(b - hovered) < Math.abs(best - hovered) ? b : best
+			  );
+
+	// Clamp label x to 5% from the chart edges so it never clips.
+	const clampX = (x: number) =>
+		Math.min(Math.max(x, chartWidth * 0.05), chartWidth * 0.95);
+
 	return (
 		<svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="presentation">
 			{/* Guide lines at each power of 10 */}
@@ -88,7 +103,8 @@ const BarChart = ({ data, unitLabel = "GB", volumeLabels }: BarChartProps) => {
 				const cx = toX(index);
 				const barTop = toY(value);
 				const barHeight = Math.max(1, baselineY - barTop);
-				const showLabel = index % 10 === 0;
+				const showLabel =
+					defaultIndices.includes(index) && index !== closestDefault;
 				const isHot = hovered === index;
 
 				return (
@@ -108,18 +124,17 @@ const BarChart = ({ data, unitLabel = "GB", volumeLabels }: BarChartProps) => {
 							onMouseLeave={() => setHovered((h) => (h === index ? null : h))}
 						/>
 
-						{/* X-axis label every 10 bars */}
+						{/* Default x-axis labels (4, evenly spaced) */}
 						{showLabel && (
-							<g transform={`translate(${cx} ${chartHeight - (paddingY - offsetY)})`}>
-								<text
-									transform="rotate(45)"
-									textAnchor="start"
-									fontSize={10}
-									className="fill-zinc-600 select-none"
-								>
-									{volumeLabels ? volumeLabels[index] : index + 1} {unitLabel}
-								</text>
-							</g>
+							<text
+								x={clampX(cx)}
+								y={chartHeight - (paddingY - offsetY) + 18}
+								textAnchor="middle"
+								fontSize={14}
+								className="fill-zinc-600 select-none"
+							>
+								{volumeLabels ? volumeLabels[index] : index + 1} {unitLabel}
+							</text>
 						)}
 					</g>
 				);
@@ -147,6 +162,17 @@ const BarChart = ({ data, unitLabel = "GB", volumeLabels }: BarChartProps) => {
 							className="font-bold fill-zinc-100 select-none"
 						>
 							{value.toLocaleString()}
+						</text>
+
+						{/* Hovered x-axis label (hides the closest default) */}
+						<text
+							x={clampX(cx)}
+							y={chartHeight - (paddingY - offsetY) + 18}
+							textAnchor="middle"
+							fontSize={18}
+							className="fill-zinc-600 select-none"
+						>
+							{volumeLabels ? volumeLabels[hovered] : hovered + 1} {unitLabel}
 						</text>
 					</g>
 				);
